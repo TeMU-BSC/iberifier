@@ -8,3 +8,4 @@
 ## Fact checks and associated schema:
 ### Maldita API:
 ### Google Fake news API
+* The documentation from Google Fake News API: [here](https://developers.google.com/search/docs/advanced/structured-data/factcheck#type_definitions)

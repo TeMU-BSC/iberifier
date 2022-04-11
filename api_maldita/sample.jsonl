@@ -1,9 +1,9 @@
- {'text': 'Vídeo que mostra rios de lava na ilha de La Palma é atual?',
- 'content': '<div>“Vulcão La Palma: Novas evacuações devido à lava vermelha quente que ameaça engolir centenas de casas. Mais de 700 residentes foram ordenados a deixar as suas casas na terça-feira devido ao avanço do fluxo de lava na região de Los Llanos Aridane da ilha”, começa a descrição do vídeo partilhado no Facebook, a 12 de outubro. O vídeo, que reúne várias filmagens, tornou-se viral e conta com mais de 80 mil visualizações, tendo sido também replicado noutras páginas.</div>',
- 'keywords': [],
- 'formats': [{'name': 'Vídeo'}, {'name': 'Post de Facebook / Postagem no Facebook'}],
- 'media': [],
- 'createdAt': '2022-01-10T16:50:42+01:00',
- 'sources': [{'name': 'Facebook'}],
- 'categories': [{'name': 'Social'}, {'name': 'Otro / Outros'}],
- 'type': {'name': 'Contexto falso - Información / Informação falsa'}}
+ {"text": "Vídeo que mostra rios de lava na ilha de La Palma é atual?",
+ "content": "<div>“Vulcão La Palma: Novas evacuações devido à lava vermelha quente que ameaça engolir centenas de casas. Mais de 700 residentes foram ordenados a deixar as suas casas na terça-feira devido ao avanço do fluxo de lava na região de Los Llanos Aridane da ilha”, começa a descrição do vídeo partilhado no Facebook, a 12 de outubro. O vídeo, que reúne várias filmagens, tornou-se viral e conta com mais de 80 mil visualizações, tendo sido também replicado noutras páginas.</div>",
+ "keywords": [],
+ "formats": [{"name": "Vídeo"}, {"name": "Post de Facebook / Postagem no Facebook"}],
+ "media": [],
+ "createdAt": "2022-01-10T16:50:42+01:00",
+ "sources": [{"name": "Facebook"}],
+ "categories": [{"name": "Social"}, {"name": "Otro / Outros"}],
+ "type": {"name": "Contexto falso - Información / Informação falsa"}}

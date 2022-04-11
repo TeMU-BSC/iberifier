@@ -2,8 +2,9 @@
 import requests
 import argparse
 import json
+import os
 import importlib.util
-spec = importlib.util.spec_from_file_location("credentials", "/home/blanca/prova/credentials.py")
+spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 maldita_api = credentials.maldita_api

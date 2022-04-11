@@ -1,8 +1,9 @@
 from googleapiclient.discovery import build
 import json
 import argparse
+import os
 import importlib.util
-spec = importlib.util.spec_from_file_location("credentials", "/home/blanca/prova/credentials.py")
+spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 google_api = credentials.google_api

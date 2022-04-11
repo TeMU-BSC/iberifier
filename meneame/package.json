@@ -1,0 +1,28 @@
+{
+  "name": "scraper",
+  "author": {
+    "name": "Paul Andrei Petrea",
+    "url": "https://github.com/PaulNdrei"
+  },
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "bluebird": "^3.7.2",
+    "cheerio": "^1.0.0-rc.10",
+    "dotenv": "^10.0.0",
+    "download": "^8.0.0",
+    "jsonpath": "^1.1.1",
+    "luxon": "^2.3.0",
+    "moment": "^2.29.1",
+    "mongodb": "^4.2.1",
+    "puppeteer": "^13.1.3",
+    "puppeteer-cluster": "^0.23.0",
+    "puppeteer-extra": "^3.2.3",
+    "puppeteer-extra-plugin-stealth": "^2.9.0",
+    "redis": "^4.0.3",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "prettier": "2.5.1"
+  }
+}

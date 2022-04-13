@@ -6,7 +6,7 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
-google_api = credentials.google_api
+google_credentials = credentials.google_credentials
 
 
 def get_arguments(parser):
@@ -19,16 +19,14 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    factCheckService = build("factchecktools", "v1alpha1", developerKey=google_api())
+    factCheckService = build("factchecktools", "v1alpha1", developerKey=google_credentials())
     request = factCheckService.claims().search(query=args.query,
                                                 #reviewPublisherSiteFilter="Maldita.es",
                                                 pageSize=1000000,#)
-                                               #query=query,
-                                               languageCode="pt")#,
+                                               languageCode="pt")# "es"
                                                #pageToken='CAs',
                                                # maxAgeDays='',
                                                #offset=10)
-                                               #reviewPublisherSiteFilter="Maldita.es",
     response = request.execute()
 
     with open("results_{}.json".format(args.query), "w") as f:

@@ -1,3 +1,4 @@
+from functools import reduce
 import math
 import requests
 import numpy as np
@@ -95,9 +96,9 @@ class TweetSearchUtil:
                         granularity=None,
                         stringify=stringify)
         
-        tweets = self._make_tweets_request(rule, results_total)
+        tweets_data = self._make_tweets_request(rule, results_total)
 
-        return tweets
+        return tweets_data[0]['data']
 
     @retry(
     wait=wait_exponential(multiplier=1, min=4, max=60 * 10),

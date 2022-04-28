@@ -17,55 +17,36 @@ def get_arguments(parser):
     return parser
 
 def historical_call(credentials, mycol):
-    for language in ['es', 'pt']:
-        queries = list(stopwords.words('spanish'))[120:] if language == 'es' else list(stopwords.words('portuguese'))
-        for q in queries:
-            print(q)
-            time.sleep(120)
-            request = credentials.claims().search(query=q, pageSize=1000000, languageCode=language)
-            response = request.execute()
-            try:
-                data = response['claims']
-                print(len(data))
-                mycol.insert_many(data)
-            except:
-                continue
+    list_media = [
+        'antena3.com',
+        'europapress.es',
+        'newtral.es',
+    ]
+    #queries = list(stopwords.words('spanish'))[120:] if language == 'es' else list(stopwords.words('portuguese'))
+    for media in list_media:
+        request = credentials.claims().search(reviewPublisherSiteFilter=media, pageSize=10000, languageCode='es')
+        response = request.execute()
+        try:
+            data = response['claims']
+            print(len(data))
+            mycol.insert_many(data)
+        except:
+            continue
     for post in mycol.find().limit(10):
         print(post)
 
 def daily_call(credentials, mycol):
     # add here all the media coming from the historical data: db.google.distinct("claimReview.publisher.name");
     list_media = [
-                  'AFP Factual',
-                  'Animal Político',
-                  'Antena 3',
-                  'Aos Fatos',
-                  'ColombiaCheck',
-                  'EFE Verifica - Agencia EFE',
-                  'Efecto Cocuyo',
-                  'El Surti',
-                  'El Surtidor (Paraguay)',
-                  'Europa Press',
-                  'FactCheck.org',
-                  'Fast Check CL',
-                  'Maldita.es',
-                  'Mexicana de Arte',
-                  'Newtral',
-                  'Polígrafo - SAPO',
-                  'Política - Estadão',
-                  'Telemundo',
-                  'UOL',
-                  'Univision',
-                  'Verificado',
-                  'Verificado MX',
-                  'Verificat',
-                  'elTOQUE'
-                ]
+        'antena3.com',
+        'europapress.es',
+        'newtral.es',
+    ]
 
     for media in list_media:
         time.sleep(20)
         print(media)
-        request = credentials.claims().search(reviewPublisherSiteFilter=media, maxAgeDays=1)
+        request = credentials.claims().search(reviewPublisherSiteFilter=media, maxAgeDays=1, languageCode='es')
         response = request.execute()
         try:
             data = response['claims']
@@ -74,13 +55,13 @@ def daily_call(credentials, mycol):
         except:
             continue
 
-def open_collection():
+def open_collection(new=False):
     myclient = pymongo.MongoClient('mongodb://127.0.0.1:27017/iberifier')
     mydb = myclient.get_default_database()  # normalmente iberifier
     mycol = mydb["google"]
-    #if mycol.count_documents({}) != 0:
-    #    print('There are entries already.')
-    #    exit()
+    if mycol.count_documents({}) != 0 and new==True:
+        print('There are entries already.')
+        exit()
     return mycol
 
 def main():
@@ -90,12 +71,13 @@ def main():
     print(args)
 
     factCheckService = build("factchecktools", "v1alpha1", developerKey=google_credentials())
-    collection = open_collection()
 
     if args.query == 'historical':
+        collection = open_collection(new=True)
         historical_call(factCheckService, collection)
 
     elif args.query == 'daily':
+        collection = open_collection(new=False)
         daily_call(factCheckService, collection)
 
 if __name__ == '__main__':

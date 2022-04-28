@@ -1,4 +1,3 @@
-from ast import keyword
 from twitter_search import TweetSearchUtil
 from pymongo import MongoClient
 
@@ -8,13 +7,15 @@ def search_twitter(query):
                                 tweet_fields='author_id,conversation_id,created_at,geo,id,lang,public_metrics,text')
     return tweets
 
-def insert_tweets_mongo(tweets):
+def insert_tweets_mongo(tweets, source):
     myclient = MongoClient('mongodb://127.0.0.1:27017/iberifier')
     mydb = myclient.get_default_database()
-    tweets_col = mydb['twtter_test']
+    tweets_col = mydb['twitter_test']
 
     for t in tweets:
+        # Set the twitter id as the mongo id
         t['_id'] = t['id']
+        t['source'] = source
 
     tweets_col.insert_many(tweets)
 
@@ -27,9 +28,16 @@ def main():
     # get only the documents who were not searched for
     itercol = keywords_col.find({'last_date':{'$exists':False}})
     for doc in itercol:
-        query = ' '.join(doc['keyword'])
+        query = ' '.join(doc['keyword']) + ' -is:retweet'
+        
+        # Ensure the query is less than 1024 characters as imposed by Twitter
+        i=1
+        while len(query) > 1024:
+            query = ' '.join(doc['keyword'][:-i]) + ' -is:retweet'
+            i +=1
+        
         tweets = search_twitter(query)
-        insert_tweets_mongo(tweets)
+        insert_tweets_mongo(tweets, doc['_id'])
         
 
 if __name__ == '__main__':

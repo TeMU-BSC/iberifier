@@ -76,7 +76,8 @@ def clean_word(word):
 
 def detect_lang(text):
     lang_dect = detect_language(text)
-    return lang_dect['fasttext']
+    print(lang_dect)
+    return lang_dect['pref_lang']
 
 
 def ner_extraction(nlp, text):

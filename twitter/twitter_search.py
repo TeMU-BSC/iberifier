@@ -125,7 +125,7 @@ class TweetSearchUtil:
 
     
     def _from_strlist_to_list(self, strlist):
-        return [s.strip for s in strlist.split(',')]
+        return [s.strip() for s in strlist.split(',')]
         
     
     def retreive_tweets_by_id(self,ids,tweet_fields=None,
@@ -185,7 +185,7 @@ class TweetSearchUtil:
         for arr in ids_chunks:
             id_list = list(arr)
             ids_str = "ids=" +",".join(map(str,id_list))
-            url = "https://api.twitter.com/2/tweets?{}".format(ids_str)
+            url = "https://api.twitter.com/2/tweets?{}{}".format(ids_str,fields)
 
             response = self._request_api_call(url,headers)
 
@@ -236,7 +236,7 @@ class TweetSearchUtil:
         for arr in ids_chunks:
             id_list = list(arr)
             ids_str = "ids=" +",".join(map(str,id_list))
-            url = "https://api.twitter.com/2/users?{}".format(ids_str)
+            url = "https://api.twitter.com/2/users?{}{}".format(ids_str,fields)
 
             response = self._request_api_call(url,headers)
 

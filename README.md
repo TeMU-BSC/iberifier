@@ -11,6 +11,7 @@
 All the historical data to the db:
 ```
 python api_maldita/use_api.py --query historical
+python api_google/use_api.py --query historical
 ```
 
 ### Google Fake news API

@@ -1,16 +1,19 @@
 from bs4 import BeautifulSoup
-import requests
-import argparse
 import string
 import os
 import pymongo
-import pandas as pd
 from language_detector import detect_language
 from datetime import datetime
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification
-
 from transformers import pipeline
+
+# Credential loading
+import importlib.util
+spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
+credentials = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(credentials)
+mongodb_credentials = credentials.mongodb_credentials
 
 # Logging options
 import logging
@@ -37,17 +40,16 @@ def load_ner_model(model_name):
     return model, tokenizer
 
 
-def connect_db():
-
-    host = os.environ["DB_HOST"]
-    port = int(os.environ["DB_MONGO_PORT"])
-    database = os.environ["DB_MONGO_DATABASE"]
+def connect_db(*args, **kwargs):
+    host = kwargs["DB_HOST"]
+    port = int(kwargs["DB_MONGO_PORT"])
+    database = kwargs["DB_MONGO_DATABASE"]
     try:
-        user = os.environ["DB_MONGO_USER"]
+        user = kwargs["DB_MONGO_USER"]
     except KeyError:
         user = None
     try:
-        passw = os.environ["DB_MONGO_PASS"]
+        passw = kwargs["DB_MONGO_PASS"]
     except KeyError:
         passw = None
     client = pymongo.MongoClient(host, port, username=user, password=passw)
@@ -76,7 +78,6 @@ def clean_word(word):
 
 def detect_lang(text):
     lang_dect = detect_language(text)
-    print(lang_dect)
     return lang_dect['pref_lang']
 
 
@@ -139,6 +140,9 @@ def pos_extraction(nlp, text):
             return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
         elif word['entity_group'] == 'VERB':
             return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
+        elif word['entity_group'] == 'ADJ':
+            return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
+
     
     ## Ensuring unique key  # TODO add to set instead of list
     for k in return_pos:
@@ -160,8 +164,6 @@ def update_keywords_db(word_dict, db, collection):
     """ """
     now = datetime.utcnow()
     for word in word_dict:
-        print(word)
-        print(word_dict[word])
         db[collection].update_one(
             {"word": word},
             {"$push": {"news_ids": {"$each": word_dict[word]}}, "$set": {"time": now}},
@@ -190,9 +192,6 @@ def update_fact(db, collection, fact_id,result_ner, result_pos, lang):
 
 def main():
 
-    from dotenv import load_dotenv
-
-    load_dotenv()
 
     # Load models
 
@@ -230,16 +229,15 @@ def main():
     logger.info("Model loaded")
 
 
-    ## DB Connectoin
+    ## DB Connection
     logger.info("Connecting to the db")
-    db = connect_db()
+    db = connect_db(mongodb_credentials)
     logger.info("Connected to: {}".format(db))
     col_maldita = "maldita"
 
     ## Running
     for fact_id, text in text_from_facts(db, col_maldita):
         lang = detect_lang(text)
-        print(lang)
         ner_model = select_model(lang, nlp_ner_es,nlp_ner_pt, nlp_ner_cat)
         pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
         # TODO: Remove as soon as getting a pt model for ner and pos

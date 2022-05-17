@@ -1,39 +1,48 @@
-import spacy
-import textacy
-from collections import Counter
-import pymongo
+
+#import pymongo
 import json
+from collections import defaultdict
 
-# python -m spacy download es_core_news_sm
-nlp = spacy.load("es_core_news_sm")
 
-def open_collection():
-    myclient = pymongo.MongoClient('mongodb://127.0.0.1:27017/iberifier')
-    mydb = myclient.get_default_database()  # normalmente iberifier
-    mycol = mydb["cooccurrence"]
-    #if mycol.count_documents({}) != 0:
-    #    print('There are entries already.')
-    #    exit()
-    return mycol
+# def open_collection():
+#     myclient = pymongo.MongoClient('mongodb://127.0.0.1:27017/iberifier')
+#     mydb = myclient.get_default_database()  # normalmente iberifier
+#     mycol = mydb["cooccurrence"]
+#     #if mycol.count_documents({}) != 0:
+#     #    print('There are entries already.')
+#     #    exit()
+#     return mycol
+
+def co_occurrence(sentences, window_size):
+    d = defaultdict(int)
+    vocab = set()
+    for text in sentences:
+        # todo: use tokenizer instead
+        text = text.lower().split()
+        # iterate over sentences
+        for i in range(len(text)):
+            token = text[i]
+            vocab.add(token)  # add to vocab
+            next_token = text[i + 1: i + 1 + window_size]
+            for t in next_token:
+                key = tuple(sorted([t, token]))
+                d[key] += 1
+    return d
 
 def main():
-    text_file = open("/home/blanca/Escriptori/projects/dt01/gpfs/projects/bsc88/corpora/oscar_es/v1/s4/oscar_es_45M_docs_clean_20210716.txt", "r") #oscar_es_45M_docs_clean_20210716
-    data = text_file.read()
+    text_file = open("/home/blanca/Escriptori/projects/dt01/gpfs/projects/bsc88/corpora/oscar_es/v1/s4/trial.txt", "r") #oscar_es_45M_docs_clean_20210716
+    lines = text_file.readlines()
     text_file.close()
-    #print(data)
 
-    # tokenize
-    doc = nlp(data)
-    ngrams = list(textacy.extract.basics.ngrams(doc, 2, min_freq=2))
-    str_ngrams = [str(i).lower() for i in ngrams]
+    print(len(lines))
 
-    counts = dict(Counter(str_ngrams))
+    counts = co_occurrence(lines, 2)
 
-    # create dict
     list_counts = []
     for key, value in counts.items():
-        list_counts.append({'words': key.split(' '), 'counts': value})
-    #print(list_counts)
+        if value > 10:
+            list_counts.append({'words': list(key), 'counts': value})
+    print(len(list_counts))
 
     # to json
     with open("cooccurrence_dict.jsonl", "w") as f:

@@ -3,6 +3,7 @@ import pymongo
 from language_detector import detect_language
 from datetime import datetime
 from collections import OrderedDict
+import itertools
 
 # Credential loading
 import importlib.util
@@ -48,6 +49,8 @@ def connect_db(*args, **kwargs):
 
 def getting_keywords(db, collection):
     for record in db[collection].find({"LANG": {"$exists": True}}):
+        ner_words = list()
+        pos_words = list()
         keywords_list = list()
         fact_id = record['_id']
         try:
@@ -55,21 +58,37 @@ def getting_keywords(db, collection):
         except KeyError:
             ner_ent = None
         try:
-            pos_words = OrderedDict(record['POS'])
-            del pos_words['VERB']  # Not working well in twitter 
+            pos_ent = OrderedDict(record['POS'])
+            del pos_ent['VERB']  # Not working well in twitter 
         except KeyError:
-            pos_words = None
+            pos_ent = None
 
         if ner_ent:
-            ner_ent_keys = list(ner_ent)  # Get the list of keys 
-            try:
-                for i, key in enumerate(ner_ent_keys):
-                    for word in ner_ent[key]:
-                        for word2 in ner_ent[ner_ent_keys[i+1]]:
-                            word_combination = '{} AND {}'.format(word, word2)
-                            keywords_list.append(word_combination)
-            except IndexError:
-                pass
+            for key in ner_ent:
+                ner_words = ner_words + ner_ent[key]
+
+            # In case the list is at least two words
+            if len(ner_words) >= 2:
+                keywords_list = list(itertools.permutations(ner_words, 2))
+                yield fact_id, keywords_list
+
+        if pos_ent:
+            for key in pos_ent:
+                pos_words = pos_words + pos_ent[key]
+
+            full_list = ner_words + pos_words
+            keywords_list = list(itertools.permutations(full_list, 2))
+            # ner_ent_keys = list(ner_ent)  # Get the list of keys 
+            # try:
+            #     for i, key in enumerate(ner_ent_keys):
+            #         for word in ner_ent[key]:
+            #             for word2 in ner_ent[ner_ent_keys[i+1]]:
+
+            #                 word_combination = sorted(tuple[word, word2])
+            #                 # word_combination = '{} AND {}'.format(word, word2)
+            #                 keywords_list.append(word_combination)
+            # except IndexError:
+            #     pass
                 
                 
 

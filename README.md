@@ -11,10 +11,14 @@
 All the historical data to the db:
 ```
 python api_maldita/use_api.py --query historical
-python api_google/use_api.py --query historical
 ```
 
 ### Google Fake news API
 * The documentation from Google Fake News API: [here](https://developers.google.com/search/docs/advanced/structured-data/factcheck#type_definitions)
+
+All the historical data to the db:
+```
+python api_google/use_api.py --query historical
+```
 
 ## MongoDB structure

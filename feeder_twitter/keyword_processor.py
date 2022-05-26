@@ -13,7 +13,7 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
-mongodb_credentials = credentials.mongodb_credentials
+mongodb_credentials = credentials.mongodb_credentials()
 
 # Logging options
 import logging
@@ -201,7 +201,7 @@ def main():
     ## DB Connection
     logger.info("Connecting to the db")
     print(mongodb_credentials)
-    db = connect_db(mongodb_credentials)
+    db = connect_db(**mongodb_credentials)
     logger.info("Connected to: {}".format(db))
     col_maldita = "maldita"
 

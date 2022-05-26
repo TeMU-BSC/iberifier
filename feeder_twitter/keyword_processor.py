@@ -73,7 +73,7 @@ def text_from_facts(db, collection):
     return parsing_new_fact(db, collection)
 
 def extract_url(txt, compiled_url_regex):
-    urls= compiled_url_regex.findall(txt)
+    urls = compiled_url_regex.findall(txt)
     return urls
 
 def clean_word(word):
@@ -86,19 +86,22 @@ def detect_lang(txt):
 
 
 def rec(ner_result, return_ner, prev_word=None, prev_entity=None):
+    def update_record(record, entity, word):
+        record.setdefault(entity[2:], []).append(word)
+        return record
     try:
         for ent in ner_result:
             type_entity = ent["entity_group"]
             word = clean_word(ent["word"])
             if type_entity.startswith("S_"):
                 if prev_word:
-                    return_ner.setdefault(prev_entity[2:], []).append(prev_word)
-                return_ner.setdefault(type_entity[2:], []).append(word)
+                    return_ner = update_record(return_ner, prev_entity, prev_word)
+                return_ner = update_record(return_ner, type_entity, word)
                 return rec(ner_result[1:], return_ner, prev_word=None)
 
             elif type_entity.startswith("B_"):
                 if prev_word:
-                    return_ner.setdefault(prev_entity[2:], []).append(prev_word)
+                    return_ner = update_record(return_ner, prev_entity, prev_word)
                 return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
             
             elif type_entity.startswith("I_"):
@@ -109,21 +112,21 @@ def rec(ner_result, return_ner, prev_word=None, prev_entity=None):
             elif type_entity.startswith("E_"):
                 if prev_word:
                     word = prev_word + ' ' + word
-                return_ner.setdefault(type_entity[2:], []).append(word)
+                return_ner = update_record(return_ner, type_entity, word)
                 return rec(ner_result[1:], return_ner, prev_word=None)
     except TypeError:
         if prev_word:
-            return_ner.setdefault(prev_entity[2:], []).append(prev_word)
-        return return_ner
+            return_ner = update_record(return_ner, prev_entity, prev_word)
+    return return_ner
 
 
 def ner_extraction(nlp, text):
     return_ner = dict()
 
     ner_results = nlp(text)
-    print(ner_results)
+    print('NER RESULT: {}'.format(ner_results))
     return_ner = rec(ner_results, return_ner)
-    print(return_ner)
+    print("FINAL DICT:{}".format(return_ner))
     ## Ensuring unique key  # TODO add to set instead of list
     for k in return_ner:
         return_ner[k] = list(set(return_ner[k]))
@@ -201,9 +204,7 @@ def main():
     col_maldita = "maldita"
 
     # Regex for URL extraction
-    url_re = re.compile(
-    "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-)
+    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
     # Load models
 
@@ -226,7 +227,7 @@ def main():
     nlp_ner_cat = pipeline('ner', model=model_name_ner_cat, aggregation_strategy='first')
 
     model_name_pos_cat = "projecte-aina/roberta-base-ca-cased-pos"
-    logger.info('Load CAT NER model: {}'.format(model_name_pos_cat))
+    logger.info('Load CAT POS model: {}'.format(model_name_pos_cat))
     nlp_pos_cat = pipeline('ner', model=model_name_pos_cat, aggregation_strategy='first')
 
 
@@ -244,19 +245,22 @@ def main():
 
     ## Running
     for fact_id, text in text_from_facts(db, col_maldita):
+        print(fact_id)
         lang = detect_lang(text)
-        ner_model = select_model(lang, nlp_ner_es,nlp_ner_pt, nlp_ner_cat)
+        ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
         pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
         result_ner = None
         result_pos = None
         urls_extracted = extract_url(text, url_re)
+        print(text)
+        print(urls_extracted)
         if lang == 'es' or lang == 'ca':
             result_ner = ner_extraction(ner_model, text)
             result_pos = pos_extraction(pos_model, text)
             update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
-        elif lang == 'pt':
-            result_pos = pos_extraction(pos_model, text)
-        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
+#        elif lang == 'pt':
+#            result_pos = pos_extraction(pos_model, text)
+#        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
 
 if __name__ == "__main__":
     main()

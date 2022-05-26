@@ -1,3 +1,4 @@
+import re
 from bs4 import BeautifulSoup
 import string
 import os
@@ -43,84 +44,87 @@ def connect_db(*args, **kwargs):
     host = kwargs["DB_HOST"]
     port = int(kwargs["DB_MONGO_PORT"])
     database = kwargs["DB_MONGO_DATABASE"]
+    try:
+        user = kwargs["DB_MONGO_USER"]
+    except KeyError:
+        user = None
+    try:
+        passw = kwargs["DB_MONGO_PASS"]
+    except KeyError:
+        passw = None
+    client = pymongo.MongoClient(host, port, username=user, password=passw)
+    logger.info("server_info():", client.server_info())
+    return client[database]
+
+
+def parsing_new_fact(db, collection):
+    for record in db[collection].find({"LANG": {"$exists": False}}):
+        fact_id = record['_id']
         try:
-            user = kwargs["DB_MONGO_USER"]
-        except KeyError:
-            user = None
+            clean_content = BeautifulSoup(record['content'], "lxml").text
+            text = record['text'] + ' ' + clean_content
+        except TypeError:  # Maybe empty
+            text = record['text']
+
+        yield fact_id, text
+
+def text_from_facts(db, collection):
+    return parsing_new_fact(db, collection)
+
+def extract_url(txt, compiled_url_regex):
+    urls= compiled_url_regex.findall(txt)
+    return urls
+
+def clean_word(word):
+    return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
+
+
+def detect_lang(txt):
+    lang_dect = detect_language(txt)
+    return lang_dect['pref_lang']
+
+
+def ner_extraction(nlp, text):
+    return_ner = dict()
+
+    ner_results = nlp(text)
+    iter_ner = iter(ner_results)
+    while True:
         try:
-            passw = kwargs["DB_MONGO_PASS"]
-        except KeyError:
-            passw = None
-        client = pymongo.MongoClient(host, port, username=user, password=passw)
-        logger.info("server_info():", client.server_info())
-        return client[database]
+            entity = next(iter_ner)
+        except StopIteration:
+            break
+        type_entity = entity["entity_group"]
+        word = clean_word(entity["word"])
+        if type_entity.startswith("S_"):
+            return_ner.setdefault(type_entity[2:], []).append(word)
 
-
-    def parsing_new_fact(db, collection):
-        for record in db[collection].find({"LANG": {"$exists": False}}):
-            fact_id = record['_id']
+        elif type_entity.startswith("B_"):
             try:
-                clean_content = BeautifulSoup(record['content'], "lxml").text
-                text = record['text'] + ' ' + clean_content
-            except TypeError:  # Maybe empty
-                text = record['text']
+                b_ent2 = next(iter_ner)
+                type_entity2 = b_ent2["entity_group"]
+                b_word2 = clean_word(b_ent2["word"])
+                if type_entity2.startswith("E_"):
+                    b_word = word + " " + b_word2
+                    return_ner.setdefault(type_entity[2:], []).append(b_word)
 
-            yield fact_id, text
-
-
-    def text_from_facts(db, collection):
-        return parsing_new_fact(db, collection)
-
-    def clean_word(word):
-        return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
-
-
-    def detect_lang(text):
-        lang_dect = detect_language(text)
-        return lang_dect['pref_lang']
-
-
-    def ner_extraction(nlp, text):
-        return_ner = dict()
-
-        ner_results = nlp(text)
-        iter_ner = iter(ner_results)
-        while True:
-            try:
-                entity = next(iter_ner)
-            except StopIteration:
-                break
-            type_entity = entity["entity_group"]
-            word = clean_word(entity["word"])
-            if type_entity.startswith("S_"):
-                return_ner.setdefault(type_entity[2:], []).append(word)
-
-            elif type_entity.startswith("B_"):
-                try:
-                    b_ent2 = next(iter_ner)
-                    type_entity2 = b_ent2["entity_group"]
-                    b_word2 = clean_word(b_ent2["word"])
-                    if type_entity2.startswith("E_"):
-                        b_word = word + " " + b_word2
-                        return_ner.setdefault(type_entity[2:], []).append(b_word)
-
-                    elif type_entity2.startswith("I_"):
-                        try:
-                            b_ent3 = next(iter_ner)
-                            type_entity3 = b_ent3["entity_group"]
-                            b_word3 = clean_word(b_ent3["word"])
-                            if type_entity3.startswith("E_"):
-                                b_word = word + " " + b_word3
-                                return_ner.setdefault(type_entity[2:], []).append(b_word)
-                            else:
-                                return_ner.setdefault(type_entity[2:], []).append(word)
-                                return_ner.setdefault(type_entity[2:], []).append(b_word3)
-                        except StopIteration:
+                elif type_entity2.startswith("I_"):
+                    try:
+                        b_ent3 = next(iter_ner)
+                        type_entity3 = b_ent3["entity_group"]
+                        b_word3 = clean_word(b_ent3["word"])
+                        if type_entity3.startswith("E_"):
+                            b_word = word + " " + b_word3
                             return_ner.setdefault(type_entity[2:], []).append(b_word)
-                            break
+                        else:
+                            return_ner.setdefault(type_entity[2:], []).append(word)
+                            return_ner.setdefault(type_entity[2:], []).append(b_word3)
+                    except StopIteration:
+                        return_ner.setdefault(type_entity[2:], []).append(b_word)
+                        break
 
-                    else:
-                        return_ner.setdefault(type_entity[2:], []).append(word)
+                else:
+                    return_ner.setdefault(type_entity[2:], []).append(word)
             except StopIteration:
                 return_ner.setdefault(type_entity[2:], []).append(word)
                 break
@@ -182,10 +186,13 @@ def select_model(lang, model_es, model_pt, model_cat):
         pass
 
 
-def update_fact(db, collection, fact_id,result_ner, result_pos, lang):
+def update_fact(db, collection, fact_id,result_ner, result_pos, lang, urls):
     db[collection].update_one(
         {"_id": fact_id},
-        {"$set": {'NER': result_ner, 'POS': result_pos, "LANG": lang}}
+        {"$set": {'NER': result_ner, 
+                  'POS': result_pos, 
+                  "LANG": lang,
+                  'URLS': urls}}
         )
 
 
@@ -197,7 +204,11 @@ def main():
     db = connect_db(mongodb_credentials)
     logger.info("Connected to: {}".format(db))
     col_maldita = "maldita"
-    raise
+
+    # Regex for URL extraction
+    url_re = re.compile(
+    "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+)
 
     # Load models
 
@@ -241,11 +252,16 @@ def main():
         lang = detect_lang(text)
         ner_model = select_model(lang, nlp_ner_es,nlp_ner_pt, nlp_ner_cat)
         pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-        # TODO: Remove as soon as getting a pt model for ner and pos
+        result_ner = None
+        result_pos = None
+        urls_extracted = extract_url(text, url_re)
         if lang == 'es' or lang == 'ca':
             result_ner = ner_extraction(ner_model, text)
             result_pos = pos_extraction(pos_model, text)
-            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang)
+            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
+        elif lang == 'pt':
+            result_pos = pos_extraction(pos_model, text)
+        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
 
 if __name__ == "__main__":
     main()

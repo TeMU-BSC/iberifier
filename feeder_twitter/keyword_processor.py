@@ -4,6 +4,7 @@ import string
 import os
 import pymongo
 from datetime import datetime
+from language_detector import detect_language
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
@@ -84,7 +85,7 @@ def detect_lang(txt):
     return lang_dect['pref_lang']
 
 
-def ner_extraction(nlp, text):
+def recreate_words(nlp, text):
     return_ner = dict()
 
     ner_results = nlp(text)
@@ -94,41 +95,45 @@ def ner_extraction(nlp, text):
             entity = next(iter_ner)
         except StopIteration:
             break
-        type_entity = entity["entity_group"]
-        word = clean_word(entity["word"])
-        if type_entity.startswith("S_"):
-            return_ner.setdefault(type_entity[2:], []).append(word)
 
-        elif type_entity.startswith("B_"):
-            try:
-                b_ent2 = next(iter_ner)
-                type_entity2 = b_ent2["entity_group"]
-                b_word2 = clean_word(b_ent2["word"])
-                if type_entity2.startswith("E_"):
-                    b_word = word + " " + b_word2
-                    return_ner.setdefault(type_entity[2:], []).append(b_word)
 
-                elif type_entity2.startswith("I_"):
-                    try:
-                        b_ent3 = next(iter_ner)
-                        type_entity3 = b_ent3["entity_group"]
-                        b_word3 = clean_word(b_ent3["word"])
-                        if type_entity3.startswith("E_"):
-                            b_word = word + " " + b_word3
-                            return_ner.setdefault(type_entity[2:], []).append(b_word)
-                        else:
-                            return_ner.setdefault(type_entity[2:], []).append(word)
-                            return_ner.setdefault(type_entity[2:], []).append(b_word3)
-                    except StopIteration:
-                        return_ner.setdefault(type_entity[2:], []).append(b_word)
-                        break
-
-                else:
-                    return_ner.setdefault(type_entity[2:], []).append(word)
-            except StopIteration:
+def rec(ner_result, return_ner, prev_word=None):
+    try:
+        for ent in ner_result:
+            type_entity = ent["entity_group"]
+            word = clean_word(ent["word"])
+            if type_entity.startswith("S_"):
+                if prev_word:
+                    return_ner.setdefault(type_entity[2:], []).append(previous_word)
                 return_ner.setdefault(type_entity[2:], []).append(word)
-                break
+                return rec(ner_result[1:], return_ner, prev_word=None)
 
+            elif type_entity.startswith("B_"):
+                if prev_word:
+                    return_ner.setdefault(type_entity[2:], []).append(previous_word)
+                return rec(ner_result[1:], return_ner, prev_word=word)
+            
+            elif type_entity.startswith("I_"):
+                if prev_word:
+                    word = prev_word + ' ' + word
+                return rec(ner_result[1:], return_ner, prev_word=word)
+
+            elif type_entity.startswith("E_"):
+                if prev_word:
+                    word = prev_word + ' ' + word
+                return_ner.setdefault(type_entity[2:], []).append(word)
+                return rec(ner_result[1:], return_ner, prev_word=None)
+    except StopIteration:
+        if prev_word:
+            return_ner.setdefault(type_entity[2:], []).append(prev_word)
+        return return_ner
+
+
+def ner_extraction(nlp, text):
+    return_ner = dict()
+
+    ner_results = nlp(text)
+    return_ner = rec(ner_results, return_ner)
     ## Ensuring unique key  # TODO add to set instead of list
     for k in return_ner:
         return_ner[k] = list(set(return_ner[k]))

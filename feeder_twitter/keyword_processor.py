@@ -85,47 +85,35 @@ def detect_lang(txt):
     return lang_dect['pref_lang']
 
 
-def recreate_words(nlp, text):
-    return_ner = dict()
-
-    ner_results = nlp(text)
-    iter_ner = iter(ner_results)
-    while True:
-        try:
-            entity = next(iter_ner)
-        except StopIteration:
-            break
-
-
-def rec(ner_result, return_ner, prev_word=None):
+def rec(ner_result, return_ner, prev_word=None, prev_entity=None):
     try:
         for ent in ner_result:
             type_entity = ent["entity_group"]
             word = clean_word(ent["word"])
             if type_entity.startswith("S_"):
                 if prev_word:
-                    return_ner.setdefault(type_entity[2:], []).append(previous_word)
+                    return_ner.setdefault(prev_entity[2:], []).append(prev_word)
                 return_ner.setdefault(type_entity[2:], []).append(word)
                 return rec(ner_result[1:], return_ner, prev_word=None)
 
             elif type_entity.startswith("B_"):
                 if prev_word:
-                    return_ner.setdefault(type_entity[2:], []).append(previous_word)
-                return rec(ner_result[1:], return_ner, prev_word=word)
+                    return_ner.setdefault(prev_entity[2:], []).append(prev_word)
+                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
             
             elif type_entity.startswith("I_"):
                 if prev_word:
                     word = prev_word + ' ' + word
-                return rec(ner_result[1:], return_ner, prev_word=word)
+                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
 
             elif type_entity.startswith("E_"):
                 if prev_word:
                     word = prev_word + ' ' + word
                 return_ner.setdefault(type_entity[2:], []).append(word)
                 return rec(ner_result[1:], return_ner, prev_word=None)
-    except StopIteration:
+    except TypeError:
         if prev_word:
-            return_ner.setdefault(type_entity[2:], []).append(prev_word)
+            return_ner.setdefault(prev_entity[2:], []).append(prev_word)
         return return_ner
 
 
@@ -133,7 +121,9 @@ def ner_extraction(nlp, text):
     return_ner = dict()
 
     ner_results = nlp(text)
+    print(ner_results)
     return_ner = rec(ner_results, return_ner)
+    print(return_ner)
     ## Ensuring unique key  # TODO add to set instead of list
     for k in return_ner:
         return_ner[k] = list(set(return_ner[k]))

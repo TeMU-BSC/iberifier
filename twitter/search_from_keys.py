@@ -1,5 +1,6 @@
 from twitter_search import TweetSearchUtil
 from pymongo import MongoClient
+import datetime
 
 def search_twitter(query):
     tsu = TweetSearchUtil('../twittercredentials.yaml')
@@ -25,19 +26,30 @@ def main():
     mydb = myclient.get_default_database()
     keywords_col = mydb["keywords_twitter"]
 
+    sources_to_update = []
     # get only the documents who were not searched for
-    itercol = keywords_col.find({'last_date':{'$exists':False}})
+    itercol = keywords_col.find({'searched_on':{'$exists':False}})
     for doc in itercol:
-        query = ' '.join(doc['keyword']) + ' -is:retweet'
-        
-        # Ensure the query is less than 1024 characters as imposed by Twitter
-        i=1
-        while len(query) > 1024:
-            query = ' '.join(doc['keyword'][:-i]) + ' -is:retweet'
-            i +=1
-        
-        tweets = search_twitter(query)
-        insert_tweets_mongo(tweets, doc['_id'])
+        news_id = doc['_id']
+        for key_list in doc['bigrams']:
+            
+            query = ' '.join(key_list) + ' -is:retweet'
+            
+            # Ensure the query is less than 1024 characters as imposed by Twitter
+            i=1
+            while len(query) > 1024:
+                query = ' '.join(key_list[:-i]) + ' -is:retweet'
+                i +=1
+            
+            tweets = search_twitter(query)
+            insert_tweets_mongo(tweets, news_id)
+
+        sources_to_update.append(news_id)
+
+    keywords_col.update_many(
+        {'_id':{'$in':sources_to_update}},
+        {"$set": { "searched_on" : datetime.datetime.now() }}
+    )
         
 
 if __name__ == '__main__':

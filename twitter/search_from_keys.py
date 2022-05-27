@@ -11,14 +11,14 @@ def search_twitter(query, date=None):
         tweets = tsu.search_tweets_by_query(query, results_total=MAX_TWEETS_RETRIEVED,
                                 tweet_fields='author_id,conversation_id,created_at,geo,id,lang,public_metrics,text')
     else:
-        start_date = date - timedelta(days=30)
+        start_date = date + timedelta(days=-30)
         end_date = date + timedelta(days=30)
-        print(start_date.strftime("%Y-%m-%d %H:%M"))
-        # tweets = tsu.search_tweets_by_query(query, results_total=MAX_TWEETS_RETRIEVED,
-        #                         tweet_fields='author_id,conversation_id,created_at,geo,id,lang,public_metrics,text',
-        #                         start_time=start_date.strftime("%Y-%m-%d %H:%M"),
-        #                         end_time=end_date.strftime("%Y-%m-%d %H:%M")
-        #                         )
+        # print(start_date.strftime("%Y-%m-%d %H:%M"))
+        tweets = tsu.search_tweets_by_query(query, results_total=MAX_TWEETS_RETRIEVED,
+                                tweet_fields='author_id,conversation_id,created_at,geo,id,lang,public_metrics,text',
+                                start_time=start_date.strftime("%Y-%m-%d %H:%M"),
+                                end_time=end_date.strftime("%Y-%m-%d %H:%M")
+                                )
 
     return tweets
 
@@ -42,7 +42,7 @@ def main():
 
     sources_to_update = []
     # get only the documents who were not searched for
-    itercol = keywords_col.find({'searched_on':{'$exists':False}}).limit(3)
+    itercol = keywords_col.find({'searched_on':{'$exists':False}})
     for doc in itercol:
         news_id = doc['_id']
         post_date = doc['createdAt']

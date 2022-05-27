@@ -1,7 +1,7 @@
 from twitter_search import TweetSearchUtil
-from pymongo import MongoClient
 import datetime
 from datetime import timedelta
+from mongo_utils import mongo_utils
 
 MAX_TWEETS_RETRIEVED = 100 # for testing purpose limited to 100
 
@@ -23,8 +23,7 @@ def search_twitter(query, date=None):
     return tweets
 
 def insert_tweets_mongo(tweets, source):
-    myclient = MongoClient('mongodb://127.0.0.1:27017/iberifier')
-    mydb = myclient.get_default_database()
+    mydb = mongo_utils.get_mongo_db()
     tweets_col = mydb['twitter_test']
 
     for t in tweets:
@@ -36,8 +35,7 @@ def insert_tweets_mongo(tweets, source):
 
 def main():
     # Iterate through collection
-    myclient = MongoClient('mongodb://127.0.0.1:27017/iberifier')
-    mydb = myclient.get_default_database()
+    mydb = mongo_utils.get_mongo_db()
     keywords_col = mydb["keywords_twitter"]
 
     sources_to_update = []

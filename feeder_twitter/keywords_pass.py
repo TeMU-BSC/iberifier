@@ -106,12 +106,9 @@ def create_bigrams(record, db, col_dict):
                 return keywords_list
 
     if pos_ent:
-        try:
-            del pos_ent['VERB']  # Not working well in twitter 
-        except KeyError:
-            pass
         for key in pos_ent:
-            pos_words = pos_words + pos_ent[key] 
+            if key in ['NOUN', 'ADJ']:
+                pos_words = pos_words + pos_ent[key] 
         # print("POS WORDS: {}".format(pos_words))
         full_list = sorted(ner_words + pos_words) # Sometimes same entity appears several times
 

@@ -176,18 +176,20 @@ def main():
     ## Running
     for fact_id, text in text_from_facts(db, col_maldita):
         lang = detect_lang(text)
-        ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-        pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-        result_ner = None
-        result_pos = None
-        urls_extracted = extract_url(text, url_re)
-        print(text)
-        result_ner = entity_extraction(ner_model, text)
-        print('NER: {}'.format(result_ner))
-        if lang == 'es' or lang == 'ca':
-            result_pos = entity_extraction(pos_model, text)
-            print('POS: {}'.format(result_pos))
-        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
+        if lang in ['es', 'ca', 'pt']:
+            ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+            pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
+            result_ner = None
+            result_pos = None
+            urls_extracted = extract_url(text, url_re)
+            print(lang)
+            print(text)
+            result_ner = entity_extraction(ner_model, text)
+            print('NER: {}'.format(result_ner))
+            if lang == 'es' or lang == 'ca':
+                result_pos = entity_extraction(pos_model, text)
+                print('POS: {}'.format(result_pos))
+            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
 
 if __name__ == "__main__":
     main()

@@ -89,6 +89,8 @@ def entity_extraction(nlp, text):
     return_entity = dict()
     for ent in nlp(text):
         return_entity.setdefault(ent['entity_group'], set()).add(ent['word'].strip())
+    for result in return_entity:
+        return_entity[result] = list(return_entity[result])
     return return_entity
 
 
@@ -179,18 +181,13 @@ def main():
         result_ner = None
         result_pos = None
         urls_extracted = extract_url(text, url_re)
-        print(urls_extracted)
-        #if lang == 'es' or lang == 'ca':
+        print(text)
+        result_ner = entity_extraction(ner_model, text)
+        print('NER: {}'.format(result_ner))
         if lang == 'es' or lang == 'ca':
-            print(text)
-            result_ner = entity_extraction(ner_model, text)
-            print('NER: {}'.format(result_ner))
-        result_pos = entity_extraction(pos_model, text)
-        print('POS: {}'.format(result_pos))
-        #    update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
-#        elif lang == 'pt':
-#            result_pos = pos_extraction(pos_model, text)
-#        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
+            result_pos = entity_extraction(pos_model, text)
+            print('POS: {}'.format(result_pos))
+        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
 
 if __name__ == "__main__":
     main()

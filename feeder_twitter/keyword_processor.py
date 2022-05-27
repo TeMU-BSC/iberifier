@@ -1,8 +1,10 @@
+import re
 from bs4 import BeautifulSoup
 import string
 import os
 import pymongo
 from datetime import datetime
+from language_detector import detect_language
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
@@ -12,7 +14,7 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
-mongodb_credentials = credentials.mongodb_credentials
+mongodb_credentials = credentials.mongodb_credentials()
 
 # Logging options
 import logging
@@ -43,88 +45,88 @@ def connect_db(*args, **kwargs):
     host = kwargs["DB_HOST"]
     port = int(kwargs["DB_MONGO_PORT"])
     database = kwargs["DB_MONGO_DATABASE"]
+    try:
+        user = kwargs["DB_MONGO_USER"]
+    except KeyError:
+        user = None
+    try:
+        passw = kwargs["DB_MONGO_PASS"]
+    except KeyError:
+        passw = None
+    client = pymongo.MongoClient(host, port, username=user, password=passw)
+    logger.info("server_info():", client.server_info())
+    return client[database]
+
+
+def parsing_new_fact(db, collection):
+    for record in db[collection].find({"LANG": {"$exists": False}}):
+        fact_id = record['_id']
         try:
-            user = kwargs["DB_MONGO_USER"]
-        except KeyError:
-            user = None
-        try:
-            passw = kwargs["DB_MONGO_PASS"]
-        except KeyError:
-            passw = None
-        client = pymongo.MongoClient(host, port, username=user, password=passw)
-        logger.info("server_info():", client.server_info())
-        return client[database]
+            clean_content = BeautifulSoup(record['content'], "lxml").text
+            text = record['text'] + ' ' + clean_content
+        except TypeError:  # Maybe empty
+            text = record['text']
+
+        yield fact_id, text
+
+def text_from_facts(db, collection):
+    return parsing_new_fact(db, collection)
+
+def extract_url(txt, compiled_url_regex):
+    urls = compiled_url_regex.findall(txt)
+    return urls
+
+def clean_word(word):
+    return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
 
-    def parsing_new_fact(db, collection):
-        for record in db[collection].find({"LANG": {"$exists": False}}):
-            fact_id = record['_id']
-            try:
-                clean_content = BeautifulSoup(record['content'], "lxml").text
-                text = record['text'] + ' ' + clean_content
-            except TypeError:  # Maybe empty
-                text = record['text']
-
-            yield fact_id, text
+def detect_lang(txt):
+    lang_dect = detect_language(txt)
+    return lang_dect['pref_lang']
 
 
-    def text_from_facts(db, collection):
-        return parsing_new_fact(db, collection)
-
-    def clean_word(word):
-        return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
-
-
-    def detect_lang(text):
-        lang_dect = detect_language(text)
-        return lang_dect['pref_lang']
-
-
-    def ner_extraction(nlp, text):
-        return_ner = dict()
-
-        ner_results = nlp(text)
-        iter_ner = iter(ner_results)
-        while True:
-            try:
-                entity = next(iter_ner)
-            except StopIteration:
-                break
-            type_entity = entity["entity_group"]
-            word = clean_word(entity["word"])
+def rec(ner_result, return_ner, prev_word=None, prev_entity=None):
+    def update_record(record, entity, word):
+        record.setdefault(entity[2:], []).append(word)
+        return record
+    try:
+        for ent in ner_result:
+            type_entity = ent["entity_group"]
+            word = clean_word(ent["word"])
             if type_entity.startswith("S_"):
-                return_ner.setdefault(type_entity[2:], []).append(word)
+                if prev_word:
+                    return_ner = update_record(return_ner, prev_entity, prev_word)
+                return_ner = update_record(return_ner, type_entity, word)
+                return rec(ner_result[1:], return_ner, prev_word=None)
 
             elif type_entity.startswith("B_"):
-                try:
-                    b_ent2 = next(iter_ner)
-                    type_entity2 = b_ent2["entity_group"]
-                    b_word2 = clean_word(b_ent2["word"])
-                    if type_entity2.startswith("E_"):
-                        b_word = word + " " + b_word2
-                        return_ner.setdefault(type_entity[2:], []).append(b_word)
+                if prev_word:
+                    return_ner = update_record(return_ner, prev_entity, prev_word)
+                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
+            
+            elif type_entity.startswith("I_"):
+                if prev_word:
+                    word = prev_word + ' ' + word
+                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
 
-                    elif type_entity2.startswith("I_"):
-                        try:
-                            b_ent3 = next(iter_ner)
-                            type_entity3 = b_ent3["entity_group"]
-                            b_word3 = clean_word(b_ent3["word"])
-                            if type_entity3.startswith("E_"):
-                                b_word = word + " " + b_word3
-                                return_ner.setdefault(type_entity[2:], []).append(b_word)
-                            else:
-                                return_ner.setdefault(type_entity[2:], []).append(word)
-                                return_ner.setdefault(type_entity[2:], []).append(b_word3)
-                        except StopIteration:
-                            return_ner.setdefault(type_entity[2:], []).append(b_word)
-                            break
+            elif type_entity.startswith("E_"):
+                if prev_word:
+                    word = prev_word + ' ' + word
+                return_ner = update_record(return_ner, type_entity, word)
+                return rec(ner_result[1:], return_ner, prev_word=None)
+    except TypeError:
+        if prev_word:
+            return_ner = update_record(return_ner, prev_entity, prev_word)
+    return return_ner
 
-                    else:
-                        return_ner.setdefault(type_entity[2:], []).append(word)
-            except StopIteration:
-                return_ner.setdefault(type_entity[2:], []).append(word)
-                break
 
+def ner_extraction(nlp, text):
+    return_ner = dict()
+
+    ner_results = nlp(text)
+    print('NER RESULT: {}'.format(ner_results))
+    return_ner = rec(ner_results, return_ner)
+    print("FINAL DICT:{}".format(return_ner))
     ## Ensuring unique key  # TODO add to set instead of list
     for k in return_ner:
         return_ner[k] = list(set(return_ner[k]))
@@ -182,10 +184,13 @@ def select_model(lang, model_es, model_pt, model_cat):
         pass
 
 
-def update_fact(db, collection, fact_id,result_ner, result_pos, lang):
+def update_fact(db, collection, fact_id,result_ner, result_pos, lang, urls):
     db[collection].update_one(
         {"_id": fact_id},
-        {"$set": {'NER': result_ner, 'POS': result_pos, "LANG": lang}}
+        {"$set": {'NER': result_ner, 
+                  'POS': result_pos, 
+                  "LANG": lang,
+                  'URLS': urls}}
         )
 
 
@@ -194,10 +199,12 @@ def main():
     ## DB Connection
     logger.info("Connecting to the db")
     print(mongodb_credentials)
-    db = connect_db(mongodb_credentials)
+    db = connect_db(**mongodb_credentials)
     logger.info("Connected to: {}".format(db))
     col_maldita = "maldita"
-    raise
+
+    # Regex for URL extraction
+    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
     # Load models
 
@@ -220,7 +227,7 @@ def main():
     nlp_ner_cat = pipeline('ner', model=model_name_ner_cat, aggregation_strategy='first')
 
     model_name_pos_cat = "projecte-aina/roberta-base-ca-cased-pos"
-    logger.info('Load CAT NER model: {}'.format(model_name_pos_cat))
+    logger.info('Load CAT POS model: {}'.format(model_name_pos_cat))
     nlp_pos_cat = pipeline('ner', model=model_name_pos_cat, aggregation_strategy='first')
 
 
@@ -238,14 +245,22 @@ def main():
 
     ## Running
     for fact_id, text in text_from_facts(db, col_maldita):
+        print(fact_id)
         lang = detect_lang(text)
-        ner_model = select_model(lang, nlp_ner_es,nlp_ner_pt, nlp_ner_cat)
+        ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
         pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-        # TODO: Remove as soon as getting a pt model for ner and pos
+        result_ner = None
+        result_pos = None
+        urls_extracted = extract_url(text, url_re)
+        print(text)
+        print(urls_extracted)
         if lang == 'es' or lang == 'ca':
             result_ner = ner_extraction(ner_model, text)
             result_pos = pos_extraction(pos_model, text)
-            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang)
+            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
+#        elif lang == 'pt':
+#            result_pos = pos_extraction(pos_model, text)
+#        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
 
 if __name__ == "__main__":
     main()

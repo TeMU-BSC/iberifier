@@ -119,8 +119,12 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
         return keywords_list
 
 
-def parsing_new_fact(db, collection):
-    for record in db[collection].find({"LANG": {"$exists": False}}):
+def parsing_new_fact(db, collection, rerun):
+    if rerun is False:
+        search = {"LANG": {"$exists": False}}
+    else:
+        search = {}
+    for record in db[collection].find(search):
         fact_id = record['_id']
         try:
             clean_content = BeautifulSoup(record['content'], "lxml").text
@@ -131,8 +135,8 @@ def parsing_new_fact(db, collection):
         yield fact_id, text
 
 
-def text_from_facts(db, collection):
-    return parsing_new_fact(db, collection)
+def text_from_facts(db, collection, rerun):
+    return parsing_new_fact(db, collection, rerun)
 
 
 def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str = ""):

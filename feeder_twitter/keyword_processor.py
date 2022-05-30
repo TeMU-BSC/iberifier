@@ -41,7 +41,7 @@ def load_ner_model(model_name):
     return model, tokenizer
 
 
-def connect_db(*args, **kwargs):
+def connect_db(**kwargs):
     host = kwargs["DB_HOST"]
     port = int(kwargs["DB_MONGO_PORT"])
     database = kwargs["DB_MONGO_DATABASE"]
@@ -85,92 +85,21 @@ def detect_lang(txt):
     return lang_dect['pref_lang']
 
 
-def rec(ner_result, return_ner, prev_word=None, prev_entity=None):
-    def update_record(record, entity, word):
-        record.setdefault(entity[2:], []).append(word)
-        return record
-    try:
-        for ent in ner_result:
-            type_entity = ent["entity_group"]
-            word = clean_word(ent["word"])
-            if type_entity.startswith("S_"):
-                if prev_word:
-                    return_ner = update_record(return_ner, prev_entity, prev_word)
-                return_ner = update_record(return_ner, type_entity, word)
-                return rec(ner_result[1:], return_ner, prev_word=None)
-
-            elif type_entity.startswith("B_"):
-                if prev_word:
-                    return_ner = update_record(return_ner, prev_entity, prev_word)
-                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
-            
-            elif type_entity.startswith("I_"):
-                if prev_word:
-                    word = prev_word + ' ' + word
-                return rec(ner_result[1:], return_ner, prev_word=word, prev_entity=type_entity)
-
-            elif type_entity.startswith("E_"):
-                if prev_word:
-                    word = prev_word + ' ' + word
-                return_ner = update_record(return_ner, type_entity, word)
-                return rec(ner_result[1:], return_ner, prev_word=None)
-    except TypeError:
-        if prev_word:
-            return_ner = update_record(return_ner, prev_entity, prev_word)
-    return return_ner
-
-
-def ner_extraction(nlp, text):
-    return_ner = dict()
-
-    ner_results = nlp(text)
-    print('NER RESULT: {}'.format(ner_results))
-    return_ner = rec(ner_results, return_ner)
-    print("FINAL DICT:{}".format(return_ner))
-    ## Ensuring unique key  # TODO add to set instead of list
-    for k in return_ner:
-        return_ner[k] = list(set(return_ner[k]))
-    return return_ner
-
-def pos_extraction(nlp, text):
-    return_pos = dict()
-    pos_result = nlp(text)
-
-    for word in pos_result:
-        if word['entity_group'] == 'NOUN':
-            return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
-        elif word['entity_group'] == 'VERB':
-            return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
-        elif word['entity_group'] == 'ADJ':
-            return_pos.setdefault(word['entity_group'], []).append(clean_word(word['word']))
-
-    
-    ## Ensuring unique key  # TODO add to set instead of list
-    for k in return_pos:
-        return_pos[k] = list(set(return_pos[k]))
-
-    return return_pos
+def entity_extraction(nlp, text):
+    return_entity = dict()
+    for ent in nlp(text):
+        return_entity.setdefault(ent['entity_group'], set()).add(ent['word'].strip())
+    for result in return_entity:
+        return_entity[result] = list(return_entity[result])
+    return return_entity
 
 
 def create_unique_words(parsed_news):
     word_dict = dict()
     for i in parsed_news:
         for word in parsed_news[i]:
-            # word[word]
             word_dict.setdefault(word, []).append(i)
     return word_dict
-
-
-def update_keywords_db(word_dict, db, collection):
-    """ """
-    now = datetime.utcnow()
-    for word in word_dict:
-        db[collection].update_one(
-            {"word": word},
-            {"$push": {"news_ids": {"$each": word_dict[word]}}, "$set": {"time": now}},
-            upsert=True,
-        )
-    return True
 
 
 def select_model(lang, model_es, model_pt, model_cat):
@@ -212,29 +141,30 @@ def main():
     # TODO the aggregation_strategy raises a warning because it is not
     # implemented, while the doc says it is
     # https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus/blob/main/README.md
-    model_name_ner_es = "PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus"
-    logger.info('Load ES NER model: {}'.format(model_name_ner_es))
-    nlp_ner_es= pipeline("ner", model=model_name_ner_es, aggregation_strategy="first")
+    model_location_ner_es = "./models/roberta-base-bne-capitel-ner-plus/"
+    nlp_ner_es = pipeline("ner", model=model_location_ner_es, tokenizer=model_location_ner_es, aggregation_strategy="simple") 
+    logger.info('Load ES NER model: {}'.format(model_location_ner_es))
+    #nlp_ner_es= pipeline("ner", model=model_name_ner_es, aggregation_strategy="first")
 
     model_name_pos_es = "PlanTL-GOB-ES/roberta-base-bne-capitel-pos"
     logger.info('Load ES POS model: {}'.format(model_name_pos_es))
-    nlp_pos_es= pipeline("ner", model=model_name_pos_es, aggregation_strategy="first")
+    nlp_pos_es= pipeline("ner", model=model_name_pos_es, aggregation_strategy="simple")
 
 
     ## CAT MODEL FROM TEMU
     model_name_ner_cat = "projecte-aina/roberta-base-ca-cased-ner"
     logger.info('Load CAT NER model: {}'.format(model_name_ner_cat))
-    nlp_ner_cat = pipeline('ner', model=model_name_ner_cat, aggregation_strategy='first')
+    nlp_ner_cat = pipeline('ner', model=model_name_ner_cat, aggregation_strategy='simple')
 
     model_name_pos_cat = "projecte-aina/roberta-base-ca-cased-pos"
     logger.info('Load CAT POS model: {}'.format(model_name_pos_cat))
-    nlp_pos_cat = pipeline('ner', model=model_name_pos_cat, aggregation_strategy='first')
+    nlp_pos_cat = pipeline('ner', model=model_name_pos_cat, aggregation_strategy='simple')
 
 
     ## PT Model from: 
     model_name_ner_pt = "monilouise/ner_news_portuguese"
     logger.info('Load PT NER model: {}'.format(model_name_ner_pt))
-    nlp_ner_pt= pipeline("ner", model=model_name_ner_pt, aggregation_strategy="first")
+    nlp_ner_pt= pipeline("ner", model=model_name_ner_pt, aggregation_strategy="simple")
 
     model_name_pos_pt = "PT_MODEL"
     logger.info('Load PT POS model: {}'.format(model_name_pos_pt))
@@ -245,22 +175,21 @@ def main():
 
     ## Running
     for fact_id, text in text_from_facts(db, col_maldita):
-        print(fact_id)
         lang = detect_lang(text)
-        ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-        pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-        result_ner = None
-        result_pos = None
-        urls_extracted = extract_url(text, url_re)
-        print(text)
-        print(urls_extracted)
-        if lang == 'es' or lang == 'ca':
-            result_ner = ner_extraction(ner_model, text)
-            result_pos = pos_extraction(pos_model, text)
+        if lang in ['es', 'ca', 'pt']:
+            ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+            pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
+            result_ner = None
+            result_pos = None
+            urls_extracted = extract_url(text, url_re)
+            print(lang)
+            print(text)
+            result_ner = entity_extraction(ner_model, text)
+            print('NER: {}'.format(result_ner))
+            if lang == 'es' or lang == 'ca':
+                result_pos = entity_extraction(pos_model, text)
+                print('POS: {}'.format(result_pos))
             update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
-#        elif lang == 'pt':
-#            result_pos = pos_extraction(pos_model, text)
-#        update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang, urls_extracted)
 
 if __name__ == "__main__":
     main()

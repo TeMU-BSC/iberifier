@@ -121,6 +121,7 @@ def getting_keywords(db, collection, col_dict):
     for record in db[collection].find({"LANG": {"$exists": True}}):
         fact_id = record['_id']
         keywords_list = create_bigrams(record, db, col_dict)
+
         yield fact_id, keywords_list
 
 
@@ -135,8 +136,11 @@ def main():
     col_coocurence = 'cooccurrence'
 
     ## Running
+    n  = 0
     for fact_id, keywords in getting_keywords(db, col_maldita, col_coocurence):
         insert_bigrams(db, col_maldita, fact_id, keywords)
+        n+=1
+    logger.info('Bigram creation for: {} records'.format(n))
     
 if __name__ == "__main__":
     main()

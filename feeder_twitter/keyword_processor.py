@@ -3,8 +3,11 @@ import re
 from bs4 import BeautifulSoup
 import string
 import os
+
+import itertools
 import pymongo
 from datetime import datetime
+from collections import OrderedDict
 from language_detector import detect_language
 
 from transformers import AutoTokenizer, AutoModelForTokenClassification
@@ -16,6 +19,10 @@ spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/crede
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 mongodb_credentials = credentials.mongodb_credentials()
+
+
+## Setting up to rerun or not (True/False)
+RERUN = True
 
 # Logging options
 import logging
@@ -59,6 +66,59 @@ def connect_db(**kwargs):
     return client[database]
 
 
+def check_cooccurrency(keywords, db, col_dict):
+    return bool(db[col_dict].find_one({'words': {"$all": list(keywords)}}, {"_id": 0}))
+
+
+def delete_from_cooccurrency(keywords_list, db, col_dict):
+    try:
+        for pairs in list(keywords_list):  # Need to create a copy of it to delete while looping
+            if check_cooccurrency(pairs, db, col_dict):
+                #print(keywords_list)
+                #print(pairs)
+                keywords_list.remove(pairs)
+        return keywords_list
+    except TypeError:  # Empty list
+        raise("Issue with removing words from cooccurrency, probably empty list of keywords")
+
+
+def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
+
+    def pairwise(iterable):
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
+    ner_words = list()
+    pos_words = list()
+    keywords_list = list()
+
+    if ner_ent:
+        for key in ner_ent:
+            ner_words = ner_words + ner_ent[key]
+        ner_words = list(set(ner_words))  # Sometimes same entity appears several times
+        #print('NER WORDS: {}'.format(ner_words))
+        # In case the list is at least two words
+        if len(ner_words) >= 2:
+            keywords_list = sorted(list(pairwise(ner_words)))
+            keywords_list = delete_from_cooccurrency(keywords_list, db, col_dict)
+            #keywords_list = list(itertools.permutations(ner_words, 2))
+            # Again, checking if the resulting list without the cooccurrencies is still >=2
+            if len(keywords_list) >=2:
+                return keywords_list
+
+    if pos_ent:
+        for key in pos_ent:
+            if key in ['NOUN', 'ADJ']:
+                pos_words = pos_words + pos_ent[key] 
+        # print("POS WORDS: {}".format(pos_words))
+        full_list = sorted(ner_words + pos_words) # Sometimes same entity appears several times
+
+        keywords_list = sorted(list(pairwise(full_list)))
+        keywords_list = delete_from_cooccurrency(keywords_list, db, col_dict)
+        return keywords_list
+
+
 def parsing_new_fact(db, collection):
     for record in db[collection].find({"LANG": {"$exists": False}}):
         fact_id = record['_id']
@@ -70,8 +130,10 @@ def parsing_new_fact(db, collection):
 
         yield fact_id, text
 
+
 def text_from_facts(db, collection):
     return parsing_new_fact(db, collection)
+
 
 def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str = ""):
     """
@@ -81,9 +143,11 @@ def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str 
     txt = compiled_regex.sub(substitute, txt)
     return txt, entities
 
+
 def extract_url(txt, compiled_url_regex):
     txt, urls = remove_compiled_regex(txt=txt, compiled_regex=compiled_url_regex)
     return txt, urls
+
 
 def clean_word(word):
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
@@ -122,13 +186,14 @@ def select_model(lang, model_es, model_pt, model_cat):
         pass
 
 
-def update_fact(db, collection, fact_id,result_ner, result_pos, lang, urls):
+def update_fact(db, collection, fact_id,result_ner, result_pos, lang, urls, bigrams):
     db[collection].update_one(
         {"_id": fact_id},
         {"$set": {'NER': result_ner, 
                   'POS': result_pos, 
                   "LANG": lang,
-                  'URLS': urls}}
+                  'URLS': urls,
+                  'bigrams': bigrams}}
         )
 
 
@@ -138,8 +203,10 @@ def main():
     logger.info("Connecting to the db")
     print(mongodb_credentials)
     db = connect_db(**mongodb_credentials)
+
     logger.info("Connected to: {}".format(db))
     col_maldita = "maldita"
+    col_cooccurence = 'cooccurrence'
 
     # Regex for URL extraction
     url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
@@ -181,9 +248,8 @@ def main():
     logger.info("Model loaded")
 
 
-
     ## Running
-    for fact_id, text in text_from_facts(db, col_maldita):
+    for fact_id, text in text_from_facts(db, col_maldita, RERUN=False):
         lang = detect_lang(text)
         if lang in ['es', 'ca', 'pt']:
             ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
@@ -198,7 +264,8 @@ def main():
             if lang == 'es' or lang == 'ca':
                 result_pos = entity_extraction(pos_model, text)
                 print('POS: {}'.format(result_pos))
-            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted)
+            bigrams =  create_bigrams(db, col_cooccurence, ner_ent=result_ner, pos_ent=result_pos) 
+            update_fact(db, col_maldita, fact_id, result_ner, result_pos, lang,  urls_extracted, bigrams)
 
 if __name__ == "__main__":
     main()

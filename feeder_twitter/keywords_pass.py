@@ -84,11 +84,11 @@ def create_bigrams(record, db, col_dict):
     keywords_list = list()
     try:
         ner_ent = OrderedDict(record['NER'])
-    except KeyError:
+    except (KeyError, TypeError):
         ner_ent = None
     try:
         pos_ent = OrderedDict(record['POS'])
-    except KeyError:
+    except (KeyError, TypeError):
         pos_ent = None
 
     if ner_ent:

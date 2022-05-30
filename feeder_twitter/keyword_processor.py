@@ -1,3 +1,4 @@
+from genericpath import commonprefix
 import re
 from bs4 import BeautifulSoup
 import string
@@ -72,9 +73,17 @@ def parsing_new_fact(db, collection):
 def text_from_facts(db, collection):
     return parsing_new_fact(db, collection)
 
+def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str = ""):
+    """
+    Search for the compiled regex in the txt and either replace it with the substitute or remove it
+    """
+    entities = compiled_regex.findall(txt)
+    txt = compiled_regex.sub(substitute, txt)
+    return txt, entities
+
 def extract_url(txt, compiled_url_regex):
-    urls = compiled_url_regex.findall(txt)
-    return urls
+    txt, urls = remove_compiled_regex(txt=txt, compiled_regex=compiled_url_regex)
+    return txt, urls
 
 def clean_word(word):
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
@@ -181,7 +190,7 @@ def main():
             pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
             result_ner = None
             result_pos = None
-            urls_extracted = extract_url(text, url_re)
+            text, urls_extracted = extract_url(text, url_re)
             print(lang)
             print(text)
             result_ner = entity_extraction(ner_model, text)

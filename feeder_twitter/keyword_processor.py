@@ -253,7 +253,7 @@ def main():
 
 
     ## Running
-    for fact_id, text in text_from_facts(db, col_maldita, RERUN=False):
+    for fact_id, text in text_from_facts(db, col_maldita, rerun=RERUN):
         lang = detect_lang(text)
         if lang in ['es', 'ca', 'pt']:
             ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)

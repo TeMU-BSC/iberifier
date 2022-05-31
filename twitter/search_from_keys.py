@@ -1,5 +1,5 @@
 from twitter_search import TweetSearchUtil
-import datetime
+from datetime import datetime
 from datetime import timedelta
 
 import sys
@@ -47,7 +47,11 @@ def main():
     for doc in itercol:
         news_id = doc['_id']
         print(news_id)
-        post_date = doc['createdAt']
+        post_date_str = doc['createdAt']
+        post_date = datetime.strptime(
+            post_date_str,
+            '%Y-%m-%dT%H:%M:%S%z'
+            )
         for key_list in doc['bigrams']:
             
             query = ' '.join(key_list) + ' -is:retweet'

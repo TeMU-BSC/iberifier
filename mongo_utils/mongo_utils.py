@@ -5,7 +5,7 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
-mongodb_credentials = credentials.mongodb_credentials
+mongodb_credentials = credentials.mongodb_credentials()
 
 # Global client
 global _mongoclient
@@ -27,6 +27,7 @@ def get_client():
     """
     Gets the MongoClient Object. If Mongo is not connected, connects.
     """
+    global _mongoclient
     if _mongoclient == None:
         host = mongodb_credentials["DB_HOST"]
 

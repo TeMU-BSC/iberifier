@@ -6,7 +6,9 @@ import sys
 sys.path.insert(1,'/home/Life/iberifier/iberifier')
 from mongo_utils import mongo_utils
 
-MAX_TWEETS_RETRIEVED = 100 # for testing purpose limited to 100
+# for testing purpose limited these are limited now
+MAX_TWEETS_RETRIEVED = 500
+MAX_CLAIMS_PER_DAY = 1
 
 def search_twitter(query, date=None):
     tsu = TweetSearchUtil('twittercredentials.yaml')
@@ -16,7 +18,6 @@ def search_twitter(query, date=None):
     else:
         start_date = date + timedelta(days=-30)
         end_date = date + timedelta(days=30)
-        # print(start_date.strftime("%Y-%m-%d %H:%M"))
         tweets = tsu.search_tweets_by_query(query, results_total=MAX_TWEETS_RETRIEVED,
                                 tweet_fields='author_id,conversation_id,created_at,geo,id,lang,public_metrics,text',
                                 start_time=start_date.strftime("%Y-%m-%d %H:%M"),
@@ -34,7 +35,7 @@ def insert_tweets_mongo(tweets, source):
         t['_id'] = t['id']
         t['source'] = source
     print(len(tweets))
-#    tweets_col.insert_many(tweets)
+    tweets_col.insert_many(tweets)
 
 def main():
     # Iterate through collection
@@ -43,7 +44,11 @@ def main():
 
     sources_to_update = []
     # get only the documents who were not searched for
-    itercol = keywords_col.find({'searched_on':{'$exists':False},'bigrams':{'$ne':None}}).limit(3)
+    itercol = keywords_col.find(
+        {'searched_on':{'$exists':False},
+        'bigrams':{'$ne':None}}
+        ).limit(MAX_CLAIMS_PER_DAY)
+
     for doc in itercol:
         news_id = doc['_id']
         print(news_id)
@@ -67,10 +72,10 @@ def main():
 
         sources_to_update.append(news_id)
 
-#    keywords_col.update_many(
-#        {'_id':{'$in':sources_to_update}},
-#        {"$set": { "searched_on" : datetime.datetime.now() }}
-#    )
+    keywords_col.update_many(
+        {'_id':{'$in':sources_to_update}},
+        {"$set": { "searched_on" : datetime.datetime.now() }}
+    )
         
 
 if __name__ == '__main__':

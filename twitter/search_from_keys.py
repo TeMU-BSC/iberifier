@@ -79,13 +79,25 @@ def main():
             post_date_str,
             '%Y-%m-%dT%H:%M:%S%z'
             )
-        # query = ' OR '.join(['{}'.format(' '.join(i)) for i in doc['bigrams']])
-        # Ensure the query is less than 1024 characters as imposed by Twitter
-        for query_max_1024 in build_query(doc['bigrams'], size=1000, step=1):
-            tweets = search_twitter(query_max_1024, post_date)
+        
+        i = 0
+        while i < len(doc['bigrams']):
+            
+            query = ' '.join(doc['bigrams'][i])
+            newquery = query
+            # Add bigrams to query until it reaches the 1024 query limit
+            # or all bigrams are added
+            while i < len(doc['bigrams']) and len(newquery) < (1024 - len(' -is:retweet')):
+                i+=1
+                query = newquery
+                newquery += ' OR '+' '.join(doc['bigrams'][i])
+            
+            query += ' -is:retweet'
+
+            tweets = search_twitter(query, post_date)
             insert_tweets_mongo(tweets, news_id)
 
-            sources_to_update.append(news_id)
+        sources_to_update.append(news_id)
 
     keywords_col.update_many(
         {'_id':{'$in':sources_to_update}},

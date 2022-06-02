@@ -37,6 +37,28 @@ def insert_tweets_mongo(tweets, source):
     print(len(tweets))
     tweets_col.insert_many(tweets)
 
+
+def build_query(list_bigrams, size, step):
+
+    query = list()
+    it = iter(list_bigrams)
+    next_bigram = next(it)
+    while True:
+        try:
+            while len(query) + len(next_bigram) < size:
+                query.append(next_bigram)
+            yield  ' OR '.join(['{}'.format(' '.join(i)) for i in query])
+            for _ in range(step):
+                if query:
+                    query.pop(0)
+                else:
+                    next_bigram = next(it)
+        except StopIteration:
+            return
+
+
+
+
 def main():
     # Iterate through collection
     mydb = mongo_utils.get_mongo_db()
@@ -57,20 +79,13 @@ def main():
             post_date_str,
             '%Y-%m-%dT%H:%M:%S%z'
             )
-        for key_list in doc['bigrams']:
-            
-            query = ' '.join(key_list) + ' -is:retweet'
-            
-            # Ensure the query is less than 1024 characters as imposed by Twitter
-            i=1
-            while len(query) > 1024:
-                query = ' '.join(key_list[:-i]) + ' -is:retweet'
-                i +=1
-            
-            tweets = search_twitter(query, post_date)
+        # query = ' OR '.join(['{}'.format(' '.join(i)) for i in doc['bigrams']])
+        # Ensure the query is less than 1024 characters as imposed by Twitter
+        for query_max_1024 in build_query(doc['bigrams'], size=1000, step=1):
+            tweets = search_twitter(query_max_1024, post_date)
             insert_tweets_mongo(tweets, news_id)
 
-        sources_to_update.append(news_id)
+            sources_to_update.append(news_id)
 
     keywords_col.update_many(
         {'_id':{'$in':sources_to_update}},

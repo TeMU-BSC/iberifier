@@ -38,27 +38,6 @@ def insert_tweets_mongo(tweets, source):
     tweets_col.insert_many(tweets)
 
 
-def build_query(list_bigrams, size, step):
-
-    query = list()
-    it = iter(list_bigrams)
-    next_bigram = next(it)
-    while True:
-        try:
-            while len(query) + len(next_bigram) < size:
-                query.append(next_bigram)
-            yield  ' OR '.join(['{}'.format(' '.join(i)) for i in query])
-            for _ in range(step):
-                if query:
-                    query.pop(0)
-                else:
-                    next_bigram = next(it)
-        except StopIteration:
-            return
-
-
-
-
 def main():
     # Iterate through collection
     mydb = mongo_utils.get_mongo_db()

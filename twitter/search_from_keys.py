@@ -37,6 +37,7 @@ def insert_tweets_mongo(tweets, source):
     print(len(tweets))
     tweets_col.insert_many(tweets)
 
+
 def main():
     # Iterate through collection
     mydb = mongo_utils.get_mongo_db()
@@ -57,16 +58,21 @@ def main():
             post_date_str,
             '%Y-%m-%dT%H:%M:%S%z'
             )
-        for key_list in doc['bigrams']:
+        
+        i = 0
+        while i < len(doc['bigrams']):
             
-            query = ' '.join(key_list) + ' -is:retweet'
+            query = ' '.join(doc['bigrams'][i])
+            newquery = query
+            # Add bigrams to query until it reaches the 1024 query limit
+            # or all bigrams are added
+            while i < len(doc['bigrams']) and len(newquery) < (1024 - len(' -is:retweet')):
+                i+=1
+                query = newquery
+                newquery += ' OR '+' '.join(doc['bigrams'][i])
             
-            # Ensure the query is less than 1024 characters as imposed by Twitter
-            i=1
-            while len(query) > 1024:
-                query = ' '.join(key_list[:-i]) + ' -is:retweet'
-                i +=1
-            
+            query += ' -is:retweet'
+
             tweets = search_twitter(query, post_date)
             insert_tweets_mongo(tweets, news_id)
 

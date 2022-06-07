@@ -1,15 +1,17 @@
 
 import requests
 import argparse
-import json
 import os
-import pymongo
 import datetime
 import importlib.util
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 maldita_credentials = credentials.maldita_credentials
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from mongo_utils import mongo_utils
 
 def get_arguments(parser):
     parser.add_argument("--query", default='historical', type=str, required=False, help='\'historical\' gets all the data in the API, \'daily\' gets the fact-checks from today')
@@ -44,12 +46,9 @@ def daily_call(user, key, mycol):
         mycol.insert_many(data)
 
 def open_collection():
-    myclient = pymongo.MongoClient('mongodb://127.0.0.1:27017/iberifier')
-    mydb = myclient.get_default_database()  # normalmente iberifier
+    mydb = mongo_utils.get_mongo_db()
     mycol = mydb["maldita"]
-    #if mycol.count_documents({}) != 0:
-    #    print('There are entries already.')
-    #    exit()
+
     return mycol
 
 

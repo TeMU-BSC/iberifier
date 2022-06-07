@@ -2,10 +2,8 @@ from genericpath import commonprefix
 import re
 from bs4 import BeautifulSoup
 import string
-import os
 
 import itertools
-import pymongo
 from datetime import datetime
 from collections import OrderedDict
 from language_detector import detect_language
@@ -13,6 +11,8 @@ from language_detector import detect_language
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 
+import sys,os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mongo_utils import mongo_utils
 
 ## Setting up to rerun or not (True/False)

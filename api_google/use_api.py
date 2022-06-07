@@ -1,9 +1,7 @@
 from googleapiclient.discovery import build
-import json
 import argparse
 import time
 import os
-import pymongo
 import importlib.util
 from nltk.corpus import stopwords
 spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
@@ -11,6 +9,9 @@ credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 google_credentials = credentials.google_credentials
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from mongo_utils import mongo_utils
 
 def get_arguments(parser):
     parser.add_argument("--query", default='historical', type=str, required=False, help='\'historical\' gets all the data in the API, \'daily\' gets the fact-checks from today')
@@ -56,8 +57,7 @@ def daily_call(credentials, mycol):
             continue
 
 def open_collection(new=False):
-    myclient = pymongo.MongoClient('mongodb://127.0.0.1:27017/iberifier')
-    mydb = myclient.get_default_database()  # normalmente iberifier
+    mydb = mongo_utils.get_mongo_db()
     mycol = mydb["google"]
     if mycol.count_documents({}) != 0 and new==True:
         print('There are entries already.')

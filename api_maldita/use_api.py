@@ -10,7 +10,7 @@ spec.loader.exec_module(credentials)
 maldita_credentials = credentials.maldita_credentials
 
 import sys
-sys.path.insert(1,'/home/Life/iberifier/iberifier')
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mongo_utils import mongo_utils
 
 def get_arguments(parser):

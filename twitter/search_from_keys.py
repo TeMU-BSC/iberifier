@@ -1,9 +1,9 @@
-from twitter_search import TweetSearchUtil
+from .twitter_search import TweetSearchUtil
 from datetime import datetime
 from datetime import timedelta
 
-import sys
-sys.path.insert(1,'/home/Life/iberifier/iberifier')
+import sys,os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mongo_utils import mongo_utils
 
 # for testing purpose limited these are limited now

@@ -66,12 +66,12 @@ def main():
             newquery = query
             # Add bigrams to query until it reaches the 1024 query limit
             # or all bigrams are added
-            while i < len(doc['bigrams']) and len(newquery) < (1024 - len(' -is:retweet')):
+            while i < len(doc['bigrams']) and len(newquery) < 1024 - (len('() -is:retweet')):
                 i+=1
                 query = newquery
                 newquery += ' OR '+' '.join(doc['bigrams'][i])
             
-            query += ' -is:retweet'
+            query = '('+query+ ') -is:retweet'
 
             tweets = search_twitter(query, post_date)
             insert_tweets_mongo(tweets, news_id)

@@ -64,12 +64,13 @@ def main():
             
             query = ' '.join(doc['bigrams'][i])
             newquery = query
+            i+=1
             # Add bigrams to query until it reaches the 1024 query limit
             # or all bigrams are added
             while i < len(doc['bigrams']) and len(newquery) < 1024 - (len('() -is:retweet')):
-                i+=1
                 query = newquery
                 newquery += ' OR '+' '.join(doc['bigrams'][i])
+                i+=1
             
             query = '('+query+ ') -is:retweet'
 

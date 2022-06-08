@@ -1,4 +1,4 @@
-from .twitter_search import TweetSearchUtil
+from twitter_search import TweetSearchUtil
 from datetime import datetime
 from datetime import timedelta
 
@@ -81,7 +81,7 @@ def main():
 
     keywords_col.update_many(
         {'_id':{'$in':sources_to_update}},
-        {"$set": { "searched_on" : datetime.datetime.now() }}
+        {"$set": { "searched_on" : datetime.now() }}
     )
         
 

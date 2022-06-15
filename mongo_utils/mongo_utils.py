@@ -42,3 +42,6 @@ def get_client():
             passw = None
         _mongoclient = pymongo.MongoClient(host, port, username=user, password=passw)
     return _mongoclient
+
+def access_mongo():
+    return credentials.basic_mongo()

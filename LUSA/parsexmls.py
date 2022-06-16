@@ -11,7 +11,7 @@ def main():
     for file in glob.glob('./*/*.xml', recursive=True):
         print(file)
         xml = ET.parse(file)
-        root = xml.getroot().find('NewsML').find('NewsItem')
+        root = xml.getroot().find('NewsItem')
         
         # Get Id and Date
         iden = root.find('Identification')

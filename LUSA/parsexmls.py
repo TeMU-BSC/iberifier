@@ -15,17 +15,14 @@ def main():
         
         # Get Id and Date
         iden = root.find('Identification')
-        if 'DateLabel' in iden: 
-            date = datetime.strptime(iden.find('DateLabel').text, '%d/%m/%Y %H:%M:%S')
-        if 'NewsIdentifier' in iden and 'NewsItemId' in iden.find('NewsIdentifier'):
-            id = iden.find('NewsIdentifier').find('NewsItemId').text
+        
+        date = datetime.strptime(iden.find('DateLabel').text, '%d/%m/%Y %H:%M:%S')
+        id = iden.find('NewsIdentifier').find('NewsItemId').text
         
         # Get headline and content
         compo = root.find('NewsComponent')
-        if 'NewsLines' in compo and 'HeadLine' in compo.find('NewsLines'):
-            head = compo.find('NewsLines').find('HeadLine')
-        if 'ContentItem' in compo and 'DataContent' in compo.find('ContentItem'):
-            content = compo.find('ContentItem').find('DataContent')
+        head = compo.find('NewsLines').find('HeadLine')
+        content = compo.find('ContentItem').find('DataContent')
         
         data = {'_id': id, 'date':date, 'headline':head, 'content':content}
         items.append(data)

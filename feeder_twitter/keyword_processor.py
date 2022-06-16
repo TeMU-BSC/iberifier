@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mongo_utils import mongo_utils
 
 ## Setting up to rerun or not (True/False)
-RERUN = True
+RERUN = False
 
 # Logging options
 import logging
@@ -167,7 +167,7 @@ def parsing_new_fact_maldita(db, collection, search):
 def parsing_new_fact_google(db, collection, search):
     for record in db[collection].find(search):
         fact_id = record["_id"]
-        text = record['title'] + ' ' + record['text']
+        text = record['claim.Review.title'] + ' ' + record['text']
         lang = record['claimReview.languageCode']
         yield fact_id, text, lang
 

@@ -153,7 +153,8 @@ def detect_lang(txt):
 
 
 def parsing_new_fact_maldita(db, collection, search):
-    for record in db[collection].find(search):
+    cursor = db[collection].find(search, no_cursor_timeout=True, batch_size=1)
+    for record in cursor:
         fact_id = record["_id"]
         try:
             clean_content = BeautifulSoup(record["content"], "lxml").text
@@ -162,14 +163,16 @@ def parsing_new_fact_maldita(db, collection, search):
             text = record["text"]
 
         yield fact_id, text, None
-
+    cursor.close()
 
 def parsing_new_fact_google(db, collection, search):
-    for record in db[collection].find(search):
+    cursor = db[collection].find(search, no_cursor_timeout=True, batch_size=1)
+    for record in cursor:
         fact_id = record["_id"]
         text = record['claimReview'][0]['title'] + ' ' + record['text']
         lang = record['claimReview'][0]['languageCode']
         yield fact_id, text, lang
+    cursor.close()
 
 
 

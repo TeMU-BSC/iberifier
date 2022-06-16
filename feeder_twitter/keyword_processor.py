@@ -178,7 +178,7 @@ def text_from_facts(db=None, collection=None, rerun=None):
         search = {"bigrams": {"$exists": False}}
     else:
         search = {}
-    if collection == 'col_maldita':
+    if collection == 'maldita':
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == 'google':
         return parsing_new_fact_google(db, collection, search)
@@ -195,8 +195,6 @@ def main():
     db = mongo_utils.get_mongo_db()
 
     logger.info("Connected to: {}".format(db))
-    # col_maldita = "maldita"
-    # col_google = 'google'
     col_cooccurence = "cooccurrence"
 
     # Regex for URL extraction

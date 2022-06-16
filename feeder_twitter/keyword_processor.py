@@ -173,7 +173,7 @@ def parsing_new_fact_google(db, collection, search):
 
 
 
-def text_from_facts(db, collection, rerun):
+def text_from_facts(db=None, collection=None, rerun=None):
     if rerun is False:
         search = {"bigrams": {"$exists": False}}
     else:

@@ -182,6 +182,10 @@ def text_from_facts(db, collection, rerun):
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == 'google':
         return parsing_new_fact_google(db, collection, search)
+    else:
+        raise Exception(
+            "Not the right collection"
+        )
 
 
 def main():
@@ -191,8 +195,8 @@ def main():
     db = mongo_utils.get_mongo_db()
 
     logger.info("Connected to: {}".format(db))
-    col_maldita = "maldita"
-    col_google = 'google'
+    # col_maldita = "maldita"
+    # col_google = 'google'
     col_cooccurence = "cooccurrence"
 
     # Regex for URL extraction
@@ -244,7 +248,7 @@ def main():
     logger.info("Model loaded")
 
     ## Running
-    for col_to_parse in [col_maldita, col_google]:
+    for col_to_parse in ['maldita', 'google']:
         for fact_id, text, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
             if lang is None:
                 lang = detect_lang(text)

@@ -167,8 +167,8 @@ def parsing_new_fact_maldita(db, collection, search):
 def parsing_new_fact_google(db, collection, search):
     for record in db[collection].find(search):
         fact_id = record["_id"]
-        text = record['claimReview.title'] + ' ' + record['text']
-        lang = record['claimReview.languageCode']
+        text = record['claimReview'][0]['title'] + ' ' + record['text']
+        lang = record['claimReview'][0]['languageCode']
         yield fact_id, text, lang
 
 

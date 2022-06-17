@@ -4,7 +4,8 @@ import time
 import os
 import importlib.util
 from nltk.corpus import stopwords
-spec = importlib.util.spec_from_file_location("credentials", os.getcwd()+"/credentials.py")
+cred_path = os.path.join(os.path.dirname(__file__), '../credentials.py')
+spec = importlib.util.spec_from_file_location("credentials",cred_path)
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 google_credentials = credentials.google_credentials

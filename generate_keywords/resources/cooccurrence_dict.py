@@ -2,6 +2,7 @@
 #import pymongo
 import json
 from collections import defaultdict
+import string
 
 
 # def open_collection():
@@ -17,7 +18,7 @@ def co_occurrence(sentences, window_size):
     d = defaultdict(int)
     vocab = set()
     for text in sentences:
-        # todo: use tokenizer instead
+        text = text.translate(str.maketrans('', '', string.punctuation))
         text = text.lower().split()
         # iterate over sentences
         for i in range(len(text)):
@@ -30,7 +31,8 @@ def co_occurrence(sentences, window_size):
     return d
 
 def main():
-    text_file = open("/home/blanca/Escriptori/projects/dt01/gpfs/projects/bsc88/corpora/oscar_es/v1/s4/trial.txt", "r") #oscar_es_45M_docs_clean_20210716
+    # todo: use a corpus with also Catalan and Portuguese -> waiting for portuguese OSCAR
+    text_file = open("/home/blanca/Escriptori/projects/dt01/gpfs/scratch/bsc88/bsc88080/iberifier_corpora/large_trilingual.txt", "r") # 4000000 oscar_es + 4000000 oscar_ca + 4000000 oscar_pt
     lines = text_file.readlines()
     text_file.close()
 

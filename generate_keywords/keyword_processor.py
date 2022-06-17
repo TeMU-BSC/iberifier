@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from mongo_utils import mongo_utils
 
 ## Setting up to rerun or not (True/False)
-RERUN = True
+RERUN = False
 
 # Logging options
 import logging
@@ -62,8 +62,6 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
             keywords_list
         ):  # Need to create a copy of it to delete while looping
             if check_cooccurrency(pairs, db, col_dict):
-                # print(keywords_list)
-                # print(pairs)
                 keywords_list.remove(pairs)
         return keywords_list
     except TypeError:  # Empty list
@@ -87,8 +85,6 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
             ner_words = ner_words + ner_ent[key]
         ner_words = list(set(ner_words))  # Sometimes same entity appears several times
 
-        ner_words = [clean_keyword(w) for w in ner_words]
-
         # In case the list is at least two words
         if len(ner_words) >= 2:
             keywords_list = sorted(list(pairwise(ner_words)))
@@ -111,11 +107,9 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
         keywords_list = delete_from_cooccurrency(keywords_list, db, col_dict)
         return keywords_list
 
-def clean_keyword(keyword):
-    newkw = re.sub(r'[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+', '', keyword)
-    return newkw
 
 def clean_word(word):
+    word = re.sub(r'[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+', '', word)
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
 
@@ -160,12 +154,9 @@ def detect_lang(txt):
     return lang_dect["pref_lang"]
 
 
-def parsing_new_fact(db, collection, rerun):
-    if rerun is False:
-        search = {"LANG": {"$exists": False}}
-    else:
-        search = {}
-    for record in db[collection].find(search):
+def parsing_new_fact_maldita(db, collection, search):
+    cursor = db[collection].find(search, batch_size=1)
+    for record in cursor:
         fact_id = record["_id"]
         try:
             clean_content = BeautifulSoup(record["content"], "lxml").text
@@ -173,11 +164,33 @@ def parsing_new_fact(db, collection, rerun):
         except TypeError:  # Maybe empty
             text = record["text"]
 
-        yield fact_id, text
+        yield fact_id, text, None
+    cursor.close()
+
+def parsing_new_fact_google(db, collection, search):
+    cursor = db[collection].find(search, batch_size=1)
+    for record in cursor:
+        fact_id = record["_id"]
+        text = record['claimReview'][0]['title'] + ' ' + record['text']
+        lang = record['claimReview'][0]['languageCode']
+        yield fact_id, text, lang
+    cursor.close()
 
 
-def text_from_facts(db, collection, rerun):
-    return parsing_new_fact(db, collection, rerun)
+
+def text_from_facts(db=None, collection=None, rerun=None):
+    if rerun is False:
+        search = {"bigrams": {"$exists": False}}
+    else:
+        search = {}
+    if collection == 'maldita':
+        return parsing_new_fact_maldita(db, collection, search)
+    elif collection == 'google':
+        return parsing_new_fact_google(db, collection, search)
+    else:
+        raise Exception(
+            "Not the right collection"
+        )
 
 
 def main():
@@ -187,7 +200,6 @@ def main():
     db = mongo_utils.get_mongo_db()
 
     logger.info("Connected to: {}".format(db))
-    col_maldita = "maldita"
     col_cooccurence = "cooccurrence"
 
     # Regex for URL extraction
@@ -239,34 +251,36 @@ def main():
     logger.info("Model loaded")
 
     ## Running
-    for fact_id, text in text_from_facts(db, col_maldita, rerun=RERUN):
-        lang = detect_lang(text)
-        if lang in ["es", "ca", "pt"]:
-            ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-            pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-            result_ner = None
-            result_pos = None
-            text, urls_extracted = extract_url(text, url_re)
-            print(lang)
-            print(text)
-            result_ner = entity_extraction(ner_model, text)
-            print("NER: {}".format(result_ner))
-            if lang == "es" or lang == "ca":
-                result_pos = entity_extraction(pos_model, text)
-                print("POS: {}".format(result_pos))
-            bigrams = create_bigrams(
-                db, col_cooccurence, ner_ent=result_ner, pos_ent=result_pos
-            )
-            update_fact(
-                db,
-                col_maldita,
-                fact_id,
-                result_ner,
-                result_pos,
-                lang,
-                urls_extracted,
-                bigrams,
-            )
+    for col_to_parse in ['maldita', 'google']:
+        for fact_id, text, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
+            if lang is None:
+                lang = detect_lang(text)
+            if lang in ["es", "ca", "pt"]:
+                ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+                pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
+                result_ner = None
+                result_pos = None
+                text, urls_extracted = extract_url(text, url_re)
+                print(lang)
+                print(text)
+                result_ner = entity_extraction(ner_model, text)
+                print("NER: {}".format(result_ner))
+                if lang == "es" or lang == "ca":
+                    result_pos = entity_extraction(pos_model, text)
+                    print("POS: {}".format(result_pos))
+                bigrams = create_bigrams(
+                    db, col_cooccurence, ner_ent=result_ner, pos_ent=result_pos
+                )
+                update_fact(
+                    db,
+                    col_to_parse,
+                    fact_id,
+                    result_ner,
+                    result_pos,
+                    lang,
+                    urls_extracted,
+                    bigrams,
+                )
 
 
 if __name__ == "__main__":

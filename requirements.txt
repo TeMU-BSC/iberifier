@@ -65,3 +65,4 @@ zipp==1.0.0
 zope.interface==4.7.1
 spacy
 textacy
+sentence_transformers

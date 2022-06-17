@@ -63,15 +63,16 @@ def main():
     vm, host = mongo_utils.access_mongo()
     client = MongoClient(vm, host)
 
-    # get all the images in telegram
-    db_telegram = client['telegram_observer']
-    collection_messages = db_telegram['messages']
-
     # look for one claim in the fact-check database
     db_iberifier = client['iberifier']
     collection_maldita = db_iberifier['maldita']
     claim = collection_maldita.find_one({"_id": ObjectId("6278d46f875f753f342a4a76")})
     print(claim)
+
+    # TODO: make functions for each data source: telegram, twitter, LUSA and menéame, mynews
+    # get all the messages in telegram
+    db_telegram = client['telegram_observer']
+    collection_messages = db_telegram['messages']
 
     # get the messages in the time frame surrounding the claim
     messages_in_frame = select_messages_timeframe(claim['createdAt'], collection_messages)

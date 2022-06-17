@@ -84,6 +84,7 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
         for key in ner_ent:
             ner_words = ner_words + ner_ent[key]
         ner_words = list(set(ner_words))  # Sometimes same entity appears several times
+
         # In case the list is at least two words
         if len(ner_words) >= 2:
             keywords_list = sorted(list(pairwise(ner_words)))
@@ -108,6 +109,7 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
 
 
 def clean_word(word):
+    word = re.sub(r'[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+', '', word)
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
 

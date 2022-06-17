@@ -23,18 +23,18 @@ formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(mes
 def get_arguments(parser):
     parser.add_argument("--claim", default='6278d46f875f753f342a4a76', type=str, required=False, help='give the id of a particular claim')
     parser.add_argument("--source", default='telegram', type=str, required=False,
-                        help='Fuente dónde estamos buscando textos relacionados: twitter_test, telegram, mynews, menéame o lusa')
+                        help='Fuente dónde estamos buscando textos relacionados: twitter_test, telegram, mynews, menéame or lusa')
     parser.add_argument("--threshold", default=0.3, type=int, required=False,
                         help='Threshold of similarity.')
     parser.add_argument("--timeframe", default=7, type=int, required=False,
                         help='Up and down timeframe from the day of the claim.')
     return parser
 
-def select_messages_timeframe(time, messages, timeframe):
+def select_messages_timeframe(time, messages, timeframe, source):
     time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S%z")
     x = time - timedelta(days=timeframe)
     y = time + timedelta(days=timeframe)
-    selection = list(messages.find({'date': { '$gt': x, '$lt': y}}))
+    selection = list(messages.find({source['date']: {'$gt': x, '$lt': y}}))
     return selection
 
 def mbert_vectorizer(text, model):
@@ -47,10 +47,10 @@ def vectorize_claim(claim, model):
     vector = mbert_vectorizer(text, model)
     return vector
 
-def vectorize_messages(messages, model):
+def vectorize_messages(messages, model, source):
     vectors = []
     for m in messages:
-        vector = mbert_vectorizer(m['message'], model)
+        vector = mbert_vectorizer(m[source['text']], model)
         vectors.append(vector)
     return vectors
 
@@ -67,6 +67,20 @@ def similar_messages(c_vec, m_vecs, threshold):
             similar_messages.append(i)
     return similar_messages
 
+def get_source_keys(source):
+    '''Defines the right fields for each source'''
+    source_keys = {}
+    if source == 'telegram':
+        source_keys['date'] = 'date'
+        source_keys['text'] = 'message'
+    elif source == 'twitter_test':
+        source_keys['date'] = 'created_at'
+        source_keys['text'] = 'text'
+    elif source == 'lusa':
+        source_keys['date'] = 'date'
+        source_keys['text'] = 'headline'
+    return source_keys
+
 def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
@@ -80,13 +94,15 @@ def main():
     # look for one claim in the fact-check database
     collection_maldita = db_iberifier['maldita']
     claim = collection_maldita.find_one({"_id": ObjectId(args.claim)})
+    #claim = collection_maldita.find_one({'createdAt': {'$gt': datetime(2021, 11, 1), '$lt': datetime(2021, 11, 30)}}) # I can't check Lusa until maldita has a datetime type
     print(claim)
 
-    # TODO: make functions for each data source: telegram, twitter, LUSA and menéame, mynews
+    # TODO: make functions for each data source: telegram, twitter, LUSA and menéame, mynews (for the last to get the data)
     # get all the messages from the source
     if args.source == 'telegram':
         db_telegram = mongo_utils.get_mongo_db('telegram_observer')
         collection_messages = db_telegram['messages']
+        source_keys = get_source_keys(args.source)
     else:
         collection_messages = db_iberifier[args.source]
         if len(list(collection_messages.find())) == 0:
@@ -94,12 +110,12 @@ def main():
             exit()
         else:
             print('Not implemeted yet')
-            exit()
+            source_keys = get_source_keys(args.source)
+            #exit()
 
-    # TODO: should we map for each datasource the name of the field or normalize the mongodb?
-
+    # TODO: all sources should have a date field that is in datetime format
     # get the messages in the time frame surrounding the claim
-    messages_in_frame = select_messages_timeframe(claim['createdAt'], collection_messages, args.timeframe)
+    messages_in_frame = select_messages_timeframe(claim['createdAt'], collection_messages, args.timeframe, source_keys)
     print(len(messages_in_frame))
     #for i in messages_in_frame:
     #    print(i)

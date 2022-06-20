@@ -26,6 +26,13 @@ python api_google/use_api.py --query historical
 
 ## Initial setup
 
+## Semantic Textual Similarity between fact-checked claims and data sources
+
+```
+python STS/dates_STS_filter.py 
+        --source mynews # currently can be: lusa, twitter_test, mynews and telegram
+        --threshold 0.4
+```
 
 ### PLANTL-GOB-ES
 The models for the NER extraction using the TeMU ES needs to be cloned from huggingface rather than using the pipelin. The reason is the need to modify the config file to replace the `_` with `-` for the entities identification. It should not be needed for the other models

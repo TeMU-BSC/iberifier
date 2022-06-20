@@ -8,7 +8,7 @@ from mongo_utils import mongo_utils
 
 def main():
     items = []
-    for file in glob.glob('mynews/*.xml', recursive=True):
+    for file in glob.glob('mynews/*(1).xml', recursive=True):
         print(file)
         xml = ET.parse(file)
         root = xml.getroot().findall('articulo')

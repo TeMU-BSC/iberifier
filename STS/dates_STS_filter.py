@@ -67,6 +67,8 @@ def similar_messages(c_vec, m_vecs, threshold):
             similar_messages.append(i)
     return similar_messages
 
+# TODO: get the right fields for each data source. Missing: menéame
+# TODO: in some cases we might also be interested in the body
 def get_source_keys(source):
     '''Defines the right fields for each source'''
     source_keys = {}
@@ -77,6 +79,9 @@ def get_source_keys(source):
         source_keys['date'] = 'created_at'
         source_keys['text'] = 'text'
     elif source == 'lusa':
+        source_keys['date'] = 'date'
+        source_keys['text'] = 'headline'
+    elif source == 'mynews':
         source_keys['date'] = 'date'
         source_keys['text'] = 'headline'
     return source_keys
@@ -99,7 +104,6 @@ def main():
         claim = collection_maldita.find_one({'date': {'$gt': datetime(2021, 11, 1), '$lt': datetime(2021, 11, 30)}}) # I can't check Lusa until maldita has a datetime type
     print(claim)
 
-    # TODO: make functions for each data source: telegram, twitter, LUSA and menéame, mynews (for the last to get the data)
     # get all the messages from the source
     if args.source == 'telegram':
         db_telegram = mongo_utils.get_mongo_db('telegram_observer')

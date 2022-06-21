@@ -95,7 +95,7 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
         )  # Sometimes same entity appears several times
 
         return full_list
-    return None
+    return []
 
 def create_bigrams(db, col_dict, keywords_list):
     def pairwise(iterable):

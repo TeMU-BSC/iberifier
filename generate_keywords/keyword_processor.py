@@ -37,7 +37,8 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-def update_fact(db, collection, fact_id, result_ner, result_pos, lang, urls, bigrams):
+def update_fact(db, collection, fact_id, result_ner, result_pos, lang, urls,
+                bigrams, trigrams, fourgrams):
     db[collection].update_one(
         {"_id": fact_id},
         {
@@ -47,6 +48,8 @@ def update_fact(db, collection, fact_id, result_ner, result_pos, lang, urls, big
                 "LANG": lang,
                 "URLS": urls,
                 "bigrams": bigrams,
+                "trigrams": trigrams,
+                "fourgrams": fourgrams,
             }
         },
     )
@@ -69,16 +72,9 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
             "Issue with removing words from cooccurrency, probably empty list of keywords"
         )
 
-
-def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
-    def pairwise(iterable):
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
+def create_keyword_list(ner_ent=None, pos_ent=None):
     ner_words = list()
     pos_words = list()
-    keywords_list = list()
 
     if ner_ent:
         for key in ner_ent:
@@ -86,13 +82,8 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
         ner_words = list(set(ner_words))  # Sometimes same entity appears several times
 
         # In case the list is at least two words
-        if len(ner_words) >= 2:
-            keywords_list = sorted(list(pairwise(ner_words)))
-            keywords_list = delete_from_cooccurrency(keywords_list, db, col_dict)
-            # keywords_list = list(itertools.permutations(ner_words, 2))
-            # Again, checking if the resulting list without the cooccurrencies is still >=2
-            if len(keywords_list) >= 2:
-                return keywords_list
+        if len(ner_words) >= 3:
+            return ner_words
 
     if pos_ent:
         for key in pos_ent:
@@ -103,10 +94,24 @@ def create_bigrams(db, col_dict, ner_ent=None, pos_ent=None):
             ner_words + pos_words
         )  # Sometimes same entity appears several times
 
-        keywords_list = sorted(list(pairwise(full_list)))
-        keywords_list = delete_from_cooccurrency(keywords_list, db, col_dict)
-        return keywords_list
+        return full_list
+    return None
 
+def create_bigrams(db, col_dict, keywords_list):
+    def pairwise(iterable):
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
+    bigrams = sorted(list(pairwise(keywords_list)))
+    bigrams = delete_from_cooccurrency(keywords_list, db, col_dict)
+    return bigrams
+
+def create_xgrams(keywords_list, x=3):
+    combinations = itertools.combinations(keywords_list,x)
+    xgrams = sorted(list(combinations))
+    #TODO delete coocurrency if possible
+    return xgrams
 
 def clean_word(word):
     word = re.sub(r'[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+', '', word)
@@ -268,9 +273,13 @@ def main():
                 if lang == "es" or lang == "ca":
                     result_pos = entity_extraction(pos_model, text)
                     print("POS: {}".format(result_pos))
-                bigrams = create_bigrams(
-                    db, col_cooccurence, ner_ent=result_ner, pos_ent=result_pos
+                keywords = create_keyword_list(
+                    ner_ent=result_ner, pos_ent=result_pos
                 )
+                bigrams = create_bigrams(db, col_cooccurence, keywords)
+                trigrams = create_xgrams(keywords, 3)
+                fourgrams = create_xgrams(keywords, 4)
+                
                 update_fact(
                     db,
                     col_to_parse,
@@ -280,6 +289,8 @@ def main():
                     lang,
                     urls_extracted,
                     bigrams,
+                    trigrams,
+                    fourgrams,
                 )
 
 

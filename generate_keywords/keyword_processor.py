@@ -103,7 +103,8 @@ def create_bigrams(db, col_dict, keywords_list):
         next(b, None)
         return zip(a, b)
 
-    bigrams = sorted(list(pairwise(keywords_list)))
+    combinations = itertools.combinations(keywords_list,2)
+    bigrams = sorted(list(combinations))
     bigrams = delete_from_cooccurrency(keywords_list, db, col_dict)
     return bigrams
 

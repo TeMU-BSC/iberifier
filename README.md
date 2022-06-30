@@ -29,8 +29,8 @@ python api_google/use_api.py --query historical
 ## Semantic Textual Similarity between fact-checked claims and data sources
 
 ```
-python STS/dates_STS_filter.py 
-        --source mynews # currently can be: lusa, twitter_test, mynews and telegram
+python STS/dates_STS_filter.py \
+        --source mynews # currently can be: lusa, twitter_test, mynews and telegram \
         --threshold 0.4
 ```
 

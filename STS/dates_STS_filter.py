@@ -26,7 +26,7 @@ def get_arguments(parser):
                         help='Fuente dónde estamos buscando textos relacionados: twitter_test, telegram, mynews, menéame or lusa')
     parser.add_argument("--threshold", default=0.3, type=float, required=False,
                         help='Threshold of similarity.')
-    parser.add_argument("--timeframe", default=7, type=int, required=False,
+    parser.add_argument("--timeframe", default=15, type=int, required=False,
                         help='Up and down timeframe from the day of the claim.')
     return parser
 
@@ -76,7 +76,10 @@ def get_source_keys(source):
         source_keys['date'] = 'date'
         source_keys['text'] = 'message'
     elif source == 'twitter_test':
-        source_keys['date'] = 'created_at'
+        source_keys['date'] = 'date'
+        source_keys['text'] = 'text'
+    elif source == 'twitter_test2':
+        source_keys['date'] = 'date'
         source_keys['text'] = 'text'
     elif source == 'lusa':
         source_keys['date'] = 'date'

@@ -98,14 +98,9 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
     return []
 
 def create_bigrams(db, col_dict, keywords_list):
-    def pairwise(iterable):
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
     combinations = itertools.combinations(keywords_list,2)
     bigrams = sorted(list(combinations))
-    bigrams = delete_from_cooccurrency(keywords_list, db, col_dict)
+    bigrams = delete_from_cooccurrency(bigrams, db, col_dict)
     return bigrams
 
 def create_xgrams(keywords_list, x=3):

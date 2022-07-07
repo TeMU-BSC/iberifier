@@ -11,8 +11,9 @@ from language_detector import detect_language
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 
-import sys,os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import sys, os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
 ## Setting up to rerun or not (True/False)
@@ -37,8 +38,18 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-def update_fact(db, collection, fact_id, result_ner, result_pos, lang, urls,
-                bigrams, trigrams, fourgrams):
+def update_fact(
+    db,
+    collection,
+    fact_id,
+    result_ner,
+    result_pos,
+    lang,
+    urls,
+    bigrams,
+    trigrams,
+    fourgrams,
+):
     db[collection].update_one(
         {"_id": fact_id},
         {
@@ -72,6 +83,7 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
             "Issue with removing words from cooccurrency, probably empty list of keywords"
         )
 
+
 def create_keyword_list(ner_ent=None, pos_ent=None):
     ner_words = list()
     pos_words = list()
@@ -97,20 +109,23 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
         return full_list
     return []
 
+
 def create_bigrams(db, col_dict, keywords_list):
-    combinations = itertools.combinations(keywords_list,2)
+    combinations = itertools.combinations(keywords_list, 2)
     bigrams = sorted(list(combinations))
     bigrams = delete_from_cooccurrency(bigrams, db, col_dict)
     return bigrams
 
+
 def create_xgrams(keywords_list, x=3):
-    combinations = itertools.combinations(keywords_list,x)
+    combinations = itertools.combinations(keywords_list, x)
     xgrams = sorted(list(combinations))
-    #TODO delete coocurrency if possible
+    # TODO delete coocurrency if possible
     return xgrams
 
+
 def clean_word(word):
-    word = re.sub(r'[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+', '', word)
+    word = re.sub(r"[^ \nA-Za-z0-9À-ÖØ-öø-ÿЀ-ӿ/]+", "", word)
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
 
@@ -168,15 +183,15 @@ def parsing_new_fact_maldita(db, collection, search):
         yield fact_id, text, None
     cursor.close()
 
+
 def parsing_new_fact_google(db, collection, search):
     cursor = db[collection].find(search, batch_size=1)
     for record in cursor:
         fact_id = record["_id"]
-        text = record['claimReview'][0]['title'] + ' ' + record['text']
-        lang = record['claimReview'][0]['languageCode']
+        text = record["claimReview"][0]["title"] + " " + record["text"]
+        lang = record["claimReview"][0]["languageCode"]
         yield fact_id, text, lang
     cursor.close()
-
 
 
 def text_from_facts(db=None, collection=None, rerun=None):
@@ -184,14 +199,12 @@ def text_from_facts(db=None, collection=None, rerun=None):
         search = {"bigrams": {"$exists": False}}
     else:
         search = {}
-    if collection == 'maldita':
+    if collection == "maldita":
         return parsing_new_fact_maldita(db, collection, search)
-    elif collection == 'google':
+    elif collection == "google":
         return parsing_new_fact_google(db, collection, search)
     else:
-        raise Exception(
-            "Not the right collection"
-        )
+        raise Exception("Not the right collection")
 
 
 def main():
@@ -252,7 +265,7 @@ def main():
     logger.info("Model loaded")
 
     ## Running
-    for col_to_parse in ['maldita', 'google']:
+    for col_to_parse in ["maldita", "google"]:
         for fact_id, text, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
             if lang is None:
                 lang = detect_lang(text)
@@ -269,13 +282,11 @@ def main():
                 if lang == "es" or lang == "ca":
                     result_pos = entity_extraction(pos_model, text)
                     print("POS: {}".format(result_pos))
-                keywords = create_keyword_list(
-                    ner_ent=result_ner, pos_ent=result_pos
-                )
+                keywords = create_keyword_list(ner_ent=result_ner, pos_ent=result_pos)
                 bigrams = create_bigrams(db, col_cooccurence, keywords)
                 trigrams = create_xgrams(keywords, 3)
                 fourgrams = create_xgrams(keywords, 4)
-                
+
                 update_fact(
                     db,
                     col_to_parse,

@@ -2,7 +2,8 @@ import pymongo, os
 
 # Credential loading
 import importlib.util
-cred_path = os.path.join(os.path.dirname(__file__), '../credentials.py')
+
+cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
 spec = importlib.util.spec_from_file_location("credentials", cred_path)
 credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
@@ -11,6 +12,7 @@ mongodb_credentials = credentials.mongodb_credentials()
 # Global client
 global _mongoclient
 _mongoclient = None
+
 
 def get_mongo_db(db=None):
     """
@@ -23,6 +25,7 @@ def get_mongo_db(db=None):
         database = mongodb_credentials["DB_MONGO_DATABASE"]
     client = get_client()
     return client[database]
+
 
 def get_client():
     """

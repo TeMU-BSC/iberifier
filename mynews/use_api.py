@@ -10,6 +10,11 @@ credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 mynews_credentials = credentials.mynews_credentials
 
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from mongo_utils import mongo_utils
+
 def get_arguments(parser):
     parser.add_argument("--query", default="(BSC AND BARCELONA) OR (BSC AND MADRID)", type=str, required=False, help="the tokens to query")
     parser.add_argument("--fromD", default="1654321118", type=str, required=False)
@@ -44,17 +49,29 @@ def query(token, args):
 
     return response.json()
 
+def open_collection():
+    mydb = mongo_utils.get_mongo_db()
+    mycol = mydb["maldita"]
+
+    return mycol
+
 def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
     print(args)
 
-    token = get_token()
-    result = query(token, args)
+    #collection = open_collection()
 
-    for element in result['news']:
+    token = get_token()
+    results = query(token, args)
+    print(type(results['news']), len(results['news']))
+    #collection.insert_many(results['news'])
+
+    for element in results['news']:
         print(element['Title'])
+
+
 
 if __name__ == "__main__":
     main()

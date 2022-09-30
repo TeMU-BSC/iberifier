@@ -61,12 +61,12 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    #collection = open_collection()
+    collection = open_collection()
 
     token = get_token()
     results = query(token, args)
     print(type(results['news']), len(results['news']))
-    #collection.insert_many(results['news'])
+    collection.insert_many(results['news'])
 
     for element in results['news']:
         print(element['Title'])

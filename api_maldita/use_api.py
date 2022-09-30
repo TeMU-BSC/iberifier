@@ -42,6 +42,8 @@ def historical_call(user, key, mycol):
             break
         # with open("results_{}.jsonl".format('prova'), "a") as f:
         #    f.write(json.dumps(data) + "\n")
+        for element in data:
+            element['date'] = datetime.datetime.strptime(element['createdAt'], '%Y-%m-%dT%H:%M:%S%z')
         mycol.insert_many(data)
     for post in mycol.find().limit(10):
         print(post)
@@ -61,6 +63,9 @@ def daily_call(user, key, mycol):
     if data == []:
         pass
     else:
+        for element in data:
+            element['date'] = datetime.datetime.strptime(element['createdAt'], '%Y-%m-%dT%H:%M:%S%z')
+        #print(data)
         mycol.insert_many(data)
 
 

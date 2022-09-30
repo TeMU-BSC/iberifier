@@ -149,8 +149,9 @@ def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str 
     return txt, entities
 
 
-def extract_url(txt, compiled_url_regex):
-    txt, urls = remove_compiled_regex(txt=txt, compiled_regex=compiled_url_regex)
+def extract_url(txt):
+    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
+    txt, urls = remove_compiled_regex(txt=txt, compiled_regex=url_re)
     return txt, urls
 
 
@@ -229,9 +230,6 @@ def main():
     logger.info("Connected to: {}".format(db))
     col_cooccurence = "cooccurrence"
 
-    # Regex for URL extraction
-    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
-
     # Load models
     # TODO the aggregation_strategy raises a warning because it is not
     # TODO: models should only be loaded when they are needed right now it takes forever
@@ -254,7 +252,7 @@ def main():
                 pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
                 result_ner = None
                 result_pos = None
-                text, urls_extracted = extract_url(text, url_re)
+                text, urls_extracted = extract_url(text)
                 print(lang)
                 print(text)
                 result_ner = entity_extraction(ner_model, text)

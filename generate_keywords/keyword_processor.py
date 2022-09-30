@@ -1,14 +1,14 @@
-from genericpath import commonprefix
+#from genericpath import commonprefix
 import re
 from bs4 import BeautifulSoup
 import string
 
 import itertools
-from datetime import datetime
-from collections import OrderedDict
+from datetime import datetime, timedelta
+#from collections import OrderedDict
 from language_detector import detect_language
 
-from transformers import AutoTokenizer, AutoModelForTokenClassification
+#from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 
 import sys, os
@@ -171,8 +171,11 @@ def detect_lang(txt):
 
 
 def parsing_new_fact_maldita(db, collection, search):
-    cursor = db[collection].find(search, batch_size=1)
+    cursor = db[collection].find(search) # TODO: it has to find the ones from the indicated date, not any random
+    print('it does get here')
+    print(search)
     for record in cursor:
+        print(record)
         fact_id = record["_id"]
         try:
             clean_content = BeautifulSoup(record["content"], "lxml").text
@@ -195,10 +198,12 @@ def parsing_new_fact_google(db, collection, search):
 
 
 def text_from_facts(db=None, collection=None, rerun=None):
+    today = datetime.today()
+    days_ago = today - timedelta(days=3) # TODO: this should be changed to the frequency of the execution
     if rerun is False:
-        search = {"bigrams": {"$exists": False}}
+        search = {"bigrams": {"$exists": False}, "date":{'$gt': days_ago, '$lt': today}}
     else:
-        search = {}
+        search = {"date":{'$gt': days_ago, '$lt': today}}
     if collection == "maldita":
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == "google":
@@ -206,63 +211,38 @@ def text_from_facts(db=None, collection=None, rerun=None):
     else:
         raise Exception("Not the right collection")
 
+def load_model(path, task, lang):
+    logger.info("Load {} {} model: {}".format(lang, task, path))
+    nlp_ner_es = pipeline(
+        ("ner" if task=="pos" else task),
+        model=path,
+        tokenizer=path,
+        aggregation_strategy="simple",
+    )
+    return nlp_ner_es
 
 def main():
 
     ## DB Connection
     logger.info("Connecting to the db")
     db = mongo_utils.get_mongo_db()
-
     logger.info("Connected to: {}".format(db))
     col_cooccurence = "cooccurrence"
 
     # Regex for URL extraction
-    url_re = re.compile(
-        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-    )
+    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
     # Load models
-
-    ## ES MODEL FROM TEMU
     # TODO the aggregation_strategy raises a warning because it is not
+    # TODO: models should only be loaded when they are needed right now it takes forever
     # implemented, while the doc says it is
     # https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus/blob/main/README.md
-    model_location_ner_es = "./models/roberta-base-bne-capitel-ner-plus/"
-    nlp_ner_es = pipeline(
-        "ner",
-        model=model_location_ner_es,
-        tokenizer=model_location_ner_es,
-        aggregation_strategy="simple",
-    )
-    logger.info("Load ES NER model: {}".format(model_location_ner_es))
-    # nlp_ner_es= pipeline("ner", model=model_name_ner_es, aggregation_strategy="first")
-
-    model_name_pos_es = "PlanTL-GOB-ES/roberta-base-bne-capitel-pos"
-    logger.info("Load ES POS model: {}".format(model_name_pos_es))
-    nlp_pos_es = pipeline("ner", model=model_name_pos_es, aggregation_strategy="simple")
-
-    ## CAT MODEL FROM TEMU
-    model_name_ner_cat = "projecte-aina/roberta-base-ca-cased-ner"
-    logger.info("Load CAT NER model: {}".format(model_name_ner_cat))
-    nlp_ner_cat = pipeline(
-        "ner", model=model_name_ner_cat, aggregation_strategy="simple"
-    )
-
-    model_name_pos_cat = "projecte-aina/roberta-base-ca-cased-pos"
-    logger.info("Load CAT POS model: {}".format(model_name_pos_cat))
-    nlp_pos_cat = pipeline(
-        "ner", model=model_name_pos_cat, aggregation_strategy="simple"
-    )
-
-    ## PT Model from:
-    model_name_ner_pt = "monilouise/ner_news_portuguese"
-    logger.info("Load PT NER model: {}".format(model_name_ner_pt))
-    nlp_ner_pt = pipeline("ner", model=model_name_ner_pt, aggregation_strategy="simple")
-
-    model_name_pos_pt = "PT_MODEL"
-    logger.info("Load PT POS model: {}".format(model_name_pos_pt))
-    nlp_pos_pt = None
-    logger.info("Model loaded")
+    nlp_ner_es = load_model("PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus", "ner", "ES")
+    nlp_pos_es = load_model("PlanTL-GOB-ES/roberta-base-bne-capitel-pos", "pos", "ES")
+    nlp_ner_cat = load_model("projecte-aina/roberta-base-ca-cased-ner", "ner", "CAT")
+    nlp_pos_cat = load_model("projecte-aina/roberta-base-ca-cased-pos", "pos", "CAT")
+    nlp_ner_pt = load_model("monilouise/ner_news_portuguese", "ner", "PT")
+    nlp_pos_pt = None # we don't have one currently
 
     ## Running
     for col_to_parse in ["maldita", "google"]:
@@ -270,7 +250,7 @@ def main():
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:
-                ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+                ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat) # TODO: this is not efficient
                 pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
                 result_ner = None
                 result_pos = None

@@ -38,4 +38,4 @@ db.twitter_test2.aggregate( [dateConversionStage] ).forEach(function (x){db.twit
 
 // GET TWITS FROM SPECIFIC DATES
 
-db.twitter_test2.find({"date":{$gte:ISODate("2022-02-01"),$lt:ISODate("2022-02-11")}})
+db.twitter_test2.find({"date":{$gte:ISODate("2022-01-09"),$lt:ISODate("2022-01-11")}})

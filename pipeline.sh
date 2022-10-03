@@ -3,8 +3,8 @@
 python api_google/use_api.py --query daily
 python api_maldita/use_api.py --query daily
 
-# get keywords related to these fact-checks
-KEYWORDS=$()
+# create the keywords for the new news
+python generate_keywords/keywords_generation.py
 
 # get tweets that could be related to the fact-checks
 

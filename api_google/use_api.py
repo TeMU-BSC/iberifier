@@ -59,8 +59,8 @@ def daily_call(credentials, mycol):
     ]
 
     for media in list_media:
+        print('Resting 20 seconds.')
         time.sleep(20)
-        print(media)
         request = credentials.claims().search(
             reviewPublisherSiteFilter=media, maxAgeDays=1, languageCode="es"
         )

@@ -7,11 +7,11 @@ import itertools
 from datetime import datetime, timedelta
 #from collections import OrderedDict
 from language_detector import detect_language
+import argparse
+import sys, os
 
 #from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
-
-import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
@@ -42,25 +42,17 @@ def update_fact(
     db,
     collection,
     fact_id,
-    result_ner,
-    result_pos,
     lang,
     urls,
-    bigrams,
-    trigrams,
-    fourgrams,
+    keywords,
 ):
     db[collection].update_one(
         {"_id": fact_id},
         {
             "$set": {
-                "NER": result_ner,
-                "POS": result_pos,
                 "LANG": lang,
                 "URLS": urls,
-                "bigrams": bigrams,
-                "trigrams": trigrams,
-                "fourgrams": fourgrams,
+                "keywords": keywords,
             }
         },
     )
@@ -94,7 +86,7 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
         ner_words = list(set(ner_words))  # Sometimes same entity appears several times
 
         # In case the list is at least two words
-        if len(ner_words) >= 3:
+        if len(ner_words) >= 2:
             return ner_words
 
     if pos_ent:
@@ -165,6 +157,13 @@ def select_model(lang, model_es, model_pt, model_cat):
     else:
         pass
 
+def get_arguments(parser):
+    parser.add_argument(
+        "--historical",
+        action='store_true',
+        help="use when there is a lot of data, and not just the daily run",
+    )
+    return parser
 
 def detect_lang(txt):
     lang_dect = detect_language(txt)
@@ -173,18 +172,18 @@ def detect_lang(txt):
 
 def parsing_new_fact_maldita(db, collection, search):
     cursor = db[collection].find(search) # TODO: it has to find the ones from the indicated date, not any random
-    print('it does get here')
-    print(search)
     for record in cursor:
         print(record)
         fact_id = record["_id"]
+        text = record["text"]
         try:
-            clean_content = BeautifulSoup(record["content"], "lxml").text
-            text = record["text"] + " " + clean_content
+            content = BeautifulSoup(record["content"], "lxml").text
+            #text = record["text"] + " " + clean_content
         except TypeError:  # Maybe empty
-            text = record["text"]
+            content  =None
 
-        yield fact_id, text, None
+        print(text)
+        yield fact_id, text, content, None
     cursor.close()
 
 
@@ -192,19 +191,20 @@ def parsing_new_fact_google(db, collection, search):
     cursor = db[collection].find(search, batch_size=1)
     for record in cursor:
         fact_id = record["_id"]
-        text = record["claimReview"][0]["title"] + " " + record["text"]
+        text = record["text"]
+        content = record["claimReview"][0]["title"]
         lang = record["claimReview"][0]["languageCode"]
-        yield fact_id, text, lang
+        yield fact_id, text, content, lang
     cursor.close()
 
 
 def text_from_facts(db=None, collection=None, rerun=None):
-    today = datetime.today()
-    days_ago = today - timedelta(days=3) # TODO: this should be changed to the frequency of the execution
+    #today = datetime.today()
+    #days_ago = today - timedelta(days=4)
     if rerun is False:
-        search = {"bigrams": {"$exists": False}, "date":{'$gt': days_ago, '$lt': today}}
+        search = {"keywords": {"$exists": False}}#, "date":{'$gt': days_ago, '$lt': today}}
     else:
-        search = {"date":{'$gt': days_ago, '$lt': today}}
+        search = {}# {"date":{'$gt': days_ago, '$lt': today}}
     if collection == "maldita":
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == "google":
@@ -212,71 +212,137 @@ def text_from_facts(db=None, collection=None, rerun=None):
     else:
         raise Exception("Not the right collection")
 
-def load_model(path, task, lang):
-    logger.info("Load {} {} model: {}".format(lang, task, path))
-    nlp_ner_es = pipeline(
-        ("ner" if task=="pos" else task),
-        model=path,
-        tokenizer=path,
-        aggregation_strategy="simple",
+def load_nlp_model(task, lang, models):
+    logger.info("Load {} {} model: {}".format(lang, task, models[(task,lang)]))
+    nlp_model = pipeline(
+        ("token-classification" if task=="pos" else task),
+        model=models[(task,lang)],
+        tokenizer=models[(task,lang)],
+        aggregation_strategy="max",
     )
-    return nlp_ner_es
+    return nlp_model
+
+def remove_nonalpha(strings):
+    new = []
+    for s in strings:
+        new.append(''.join(x for x in s if x.isalpha()))
+    new = list(set([n for n in new if n !='']))
+    return new
+
+def get_pos(pos_model, text, type):
+    pos = []
+    try:
+        for element in pos_model(text):
+            if element['entity_group'] == type: #or element['entity_group'] == 'PROPN':
+                pos.append(element['word'])
+        return pos
+    except:
+        return []
+
+def get_ner(ner_model, text):
+    ner = []
+    try:
+        for entity in ner_model(text):
+            ner.append(entity['word'])
+        return ner
+    except:
+        return []
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser = get_arguments(parser)
+    args = parser.parse_args()
+    print(args)
 
     ## DB Connection
     logger.info("Connecting to the db")
     db = mongo_utils.get_mongo_db()
     logger.info("Connected to: {}".format(db))
-    col_cooccurence = "cooccurrence"
+    #col_cooccurence = "cooccurrence"
 
     # Load models
     # TODO the aggregation_strategy raises a warning because it is not
-    # TODO: models should only be loaded when they are needed right now it takes forever
     # implemented, while the doc says it is
     # https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus/blob/main/README.md
-    nlp_ner_es = load_model("PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus", "ner", "ES")
-    nlp_pos_es = load_model("PlanTL-GOB-ES/roberta-base-bne-capitel-pos", "pos", "ES")
-    nlp_ner_cat = load_model("projecte-aina/roberta-base-ca-cased-ner", "ner", "CAT")
-    nlp_pos_cat = load_model("projecte-aina/roberta-base-ca-cased-pos", "pos", "CAT")
-    nlp_ner_pt = load_model("monilouise/ner_news_portuguese", "ner", "PT")
-    nlp_pos_pt = None # we don't have one currently
+    dict_models = {("ner","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
+                   ("pos","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-pos",
+                   ("ner", "ca"):"projecte-aina/roberta-base-ca-cased-ner",
+                   ("pos", "ca"): "projecte-aina/roberta-base-ca-cased-pos",
+                   ("ner", "pt"): "monilouise/ner_news_portuguese",
+                   ("pos", "pt"): None # TODO: portuguese model missing
+                   }
+    if args.historical: # loading all the models is not efficient in daily calls
+        nlp_ner_es = load_nlp_model("ner", "es", dict_models)
+        nlp_pos_es = load_nlp_model("pos", "es", dict_models)
+        nlp_ner_cat = load_nlp_model("ner", "ca", dict_models)
+        nlp_pos_cat = load_nlp_model("pos", "ca", dict_models)
+        nlp_ner_pt = load_nlp_model("ner", "pt", dict_models)
+        nlp_pos_pt = None # we don't have one currently
 
     ## Running
     for col_to_parse in ["maldita", "google"]:
-        for fact_id, text, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
+        for fact_id, text, content, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:
-                ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat) # TODO: this is not efficient
-                pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-                result_ner = None
-                result_pos = None
-                text, urls_extracted = extract_url(text)
-                print(lang)
-                print(text)
-                result_ner = entity_extraction(ner_model, text)
-                print("NER: {}".format(result_ner))
-                if lang == "es" or lang == "ca":
-                    result_pos = entity_extraction(pos_model, text)
-                    print("POS: {}".format(result_pos))
-                keywords = create_keyword_list(ner_ent=result_ner, pos_ent=result_pos)
-                bigrams = create_bigrams(db, col_cooccurence, keywords)
-                trigrams = create_xgrams(keywords, 3)
-                fourgrams = create_xgrams(keywords, 4)
+                if args.historical:
+                    ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+                    pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
+                else:
+                    ner_model = load_nlp_model("ner", lang, dict_models)
+                    pos_model = load_nlp_model("pos", lang, dict_models)
 
-                update_fact(
-                    db,
-                    col_to_parse,
-                    fact_id,
-                    result_ner,
-                    result_pos,
-                    lang,
-                    urls_extracted,
-                    bigrams,
-                    trigrams,
-                    fourgrams,
-                )
+                text, urls_extracted = extract_url(text)
+                #print(urls_extracted)
+
+                keywords = get_ner(ner_model, text)
+                result_pos = []
+                if lang == "es" or lang == "ca":
+                    result_pos = get_pos(pos_model, text, "NOUN")
+                keywords += result_pos
+
+                # if this does not give enough keywords, try other ways, these ways are ordered strategically
+
+                if len(keywords) < 4:
+                    if content != None:
+                        content_ner = get_ner(ner_model, content)
+                        keywords += content_ner
+                if len(keywords) < 4:
+                    if lang == "es" or lang == "ca":
+                        content_pos = get_pos(pos_model, content, "NOUN")
+                        keywords += content_pos
+
+                if len(keywords) < 4:
+                    if lang == "es" or lang == "ca":
+                        adjectives = get_pos(pos_model, text, "ADJ")
+                        keywords += adjectives
+                if len(keywords) < 4:
+                    if lang == "es" or lang == "ca":
+                        verbs = get_pos(pos_model, text, "VERB")
+                        keywords += verbs
+
+                keywords = remove_nonalpha(keywords)
+                print('KEYWORDS:', keywords)
+
+                if len(keywords) == 0:
+                    print('empty example')
+                    print(lang)
+                else:
+
+                    # TODO: combine all the keywords in pairs, check if the pairs are very often coocccurring and, if not make them a query
+
+                    # Example: (arnm and leche) or (estudio and leche) de las keyords  [' ARNm', ' estudio', ' leche']
+                    # AUNQUE IGUAL ESTO SE PUEDE HACER DIRECTAMENTE EN TWITTER Y MYNEWS
+
+                    update_fact(
+                        db,
+                        col_to_parse,
+                        fact_id,
+                        lang,
+                        urls_extracted,
+                        keywords
+                    )
 
 
 if __name__ == "__main__":

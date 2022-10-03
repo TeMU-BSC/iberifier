@@ -39,3 +39,11 @@ db.twitter_test2.aggregate( [dateConversionStage] ).forEach(function (x){db.twit
 // GET TWITS FROM SPECIFIC DATES
 
 db.twitter_test2.find({"date":{$gte:ISODate("2022-01-09"),$lt:ISODate("2022-01-11")}})
+
+// COUNT UNIQUE VALUES IN A FIELD
+db.maldita.distinct('text').length
+
+ db.maldita.count()
+
+// COUNT THE NUMBER OF OCCURRENCES OF ALL UNIQUE VALUES FOR TEXT
+db.maldita.aggregate([{"$group": {"_id": "$text", "count":{"$sum": 1}}}])

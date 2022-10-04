@@ -278,7 +278,7 @@ def main():
                    ("ner", "ca"):"projecte-aina/roberta-base-ca-cased-ner",
                    ("pos", "ca"): "projecte-aina/roberta-base-ca-cased-pos",
                    ("ner", "pt"): "monilouise/ner_news_portuguese",
-                   ("pos", "pt"): None # TODO: portuguese model missing
+                   ("pos", "pt"): "wietsedv/xlm-roberta-base-ft-udpos28-pt"
                    }
     if args.historical: # loading all the models is not efficient in daily calls
         nlp_ner_es = load_nlp_model("ner", "es", dict_models)
@@ -306,8 +306,8 @@ def main():
 
                 keywords = get_ner(ner_model, text)
                 result_pos = []
-                if lang == "es" or lang == "ca":
-                    result_pos = get_pos(pos_model, text, "NOUN")
+                #if lang == "es" or lang == "ca":
+                result_pos = get_pos(pos_model, text, "NOUN")
                 keywords += result_pos
 
                 # if this does not give enough keywords, try other ways, these ways are ordered strategically
@@ -317,18 +317,18 @@ def main():
                         content_ner = get_ner(ner_model, content)
                         keywords += content_ner
                 if len(keywords) < 4:
-                    if lang == "es" or lang == "ca":
-                        content_pos = get_pos(pos_model, content, "NOUN")
-                        keywords += content_pos
+                    #if lang == "es" or lang == "ca":
+                    content_pos = get_pos(pos_model, content, "NOUN")
+                    keywords += content_pos
 
                 if len(keywords) < 4:
-                    if lang == "es" or lang == "ca":
-                        adjectives = get_pos(pos_model, text, "ADJ")
-                        keywords += adjectives
+                    #if lang == "es" or lang == "ca":
+                    adjectives = get_pos(pos_model, text, "ADJ")
+                    keywords += adjectives
                 if len(keywords) < 4:
-                    if lang == "es" or lang == "ca":
-                        verbs = get_pos(pos_model, text, "VERB")
-                        keywords += verbs
+                    #if lang == "es" or lang == "ca":
+                    verbs = get_pos(pos_model, text, "VERB")
+                    keywords += verbs
 
                 keywords = remove_nonalpha(keywords)
                 print('KEYWORDS:', keywords)

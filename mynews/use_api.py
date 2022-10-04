@@ -61,7 +61,7 @@ def query(collection, headers, pairs, args):
 
     results = response.json()
 
-    if len(results) > 0:
+    if len(results) == 0:
         print(type(results['news']), len(results['news']))
         collection.insert_many(results['news'])
 
@@ -138,7 +138,7 @@ def main():
         'Authorization': f"Bearer {token.text}",
     }
     for ids, pairs in filtered_pairs.items():
-        query(mynews, pairs, args)
+        query(mynews, headers, pairs, args)
         #exit()
 
 

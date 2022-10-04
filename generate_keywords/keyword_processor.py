@@ -45,6 +45,7 @@ def update_fact(
     lang,
     urls,
     keywords,
+    keyword_pairs,
 ):
     db[collection].update_one(
         {"_id": fact_id},
@@ -53,6 +54,7 @@ def update_fact(
                 "LANG": lang,
                 "URLS": urls,
                 "keywords": keywords,
+                "keyword_pairs": keyword_pairs,
             }
         },
     )
@@ -259,6 +261,23 @@ def get_ner(ner_model, text):
     except:
         return []
 
+def create_and_filter_pairs(db, keywords):
+    filtered_pairs = []
+    pairs = ((x, y) for x in keywords for y in keywords if y > x)
+    for pair in pairs:
+        # filter pairs that are too co-occurring
+        check = [x.lower() for x in pair]
+        #print(check)
+        cursor = db["cooccurrence"].find_one({'words':check}) # TODO: cooccurrence dicionaty has to be bigger and dynamic
+        # TODO: these still takes quite too much time, find if we have a better solution
+        if cursor:
+            #print(cursor['counts'])
+            if cursor['counts'] > 15:
+                break
+        filtered_pairs.append(pair)
+
+    return filtered_pairs
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -337,11 +356,7 @@ def main():
                     print('empty example')
                     print(lang)
                 else:
-
-                    # TODO: combine all the keywords in pairs, check if the pairs are very often coocccurring and, if not make them a query
-
-                    # Example: (arnm and leche) or (estudio and leche) de las keyords  [' ARNm', ' estudio', ' leche']
-                    # AUNQUE IGUAL ESTO SE PUEDE HACER DIRECTAMENTE EN TWITTER Y MYNEWS
+                    keyword_pairs = create_and_filter_pairs(db, keywords)
 
                     update_fact(
                         db,
@@ -349,7 +364,8 @@ def main():
                         fact_id,
                         lang,
                         urls_extracted,
-                        keywords
+                        keywords,
+                        keyword_pairs,
                     )
 
 

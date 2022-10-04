@@ -42,7 +42,7 @@ def query(collection, headers, pairs, args):
         query += string
     query = query[:-3]
 
-    print(query)
+    #print(query)
 
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=10)
@@ -69,7 +69,10 @@ def query(collection, headers, pairs, args):
             print(element['Title'])
         return results
     else:
-        print('No results found for query: "{}"'.format(query))
+        print('no results')
+        print(query)
+        print(start_int)
+        print(end_int)
 
 def get_keywords(args, db):
     dict_keywords = {}
@@ -84,29 +87,29 @@ def get_keywords(args, db):
         cursor = db[collection].find(search)
         for fact in cursor:
             print(fact['text'])
-            print(fact['keywords'])
-            dict_keywords[fact['_id']] = fact['keywords']
+            print(fact['keyword_pairs'])
+            dict_keywords[fact['_id']] = fact['keyword_pairs']
     return dict_keywords
 
-def create_and_filter_pairs(db, keywords_to_query):
-    print('Filtering the keywords might take some time...')
-    dict_pairs = {}
-    for ids, keywords in keywords_to_query.items():
-        dict_pairs[ids] = []
-        pairs = ((x, y) for x in keywords for y in keywords if y > x)
-        for pair in pairs:
-            # filter pairs that are too co-occurring
-            check = [x.lower() for x in pair]
-            #print(check)
-            cursor = db["cooccurrence"].find_one({'words':check}) # TODO: cooccurrence dicionaty has to be bigger and dynamic
-            # TODO: these still takes quite too much time, find if we have a better solution
-            if cursor:
-                #print(cursor['counts'])
-                if cursor['counts'] > 15:
-                    break
-            dict_pairs[ids].append(pair)
-
-    return dict_pairs
+# def create_and_filter_pairs(db, keywords_to_query):
+#     print('Filtering the keywords might take some time...')
+#     dict_pairs = {}
+#     for ids, keywords in keywords_to_query.items():
+#         dict_pairs[ids] = []
+#         pairs = ((x, y) for x in keywords for y in keywords if y > x)
+#         for pair in pairs:
+#             # filter pairs that are too co-occurring
+#             check = [x.lower() for x in pair]
+#             #print(check)
+#             cursor = db["cooccurrence"].find_one({'words':check}) # TODO: cooccurrence dicionaty has to be bigger and dynamic
+#             # TODO: these still takes quite too much time, find if we have a better solution
+#             if cursor:
+#                 #print(cursor['counts'])
+#                 if cursor['counts'] > 15:
+#                     break
+#             dict_pairs[ids].append(pair)
+#
+#     return dict_pairs
 
 def time_to_int(dateobj):
     total = int(dateobj.strftime('%S'))
@@ -125,10 +128,10 @@ def main():
     db = mongo_utils.get_mongo_db()
 
     # look for the fact-checks of a certain time span and extract the tokens
-    keywords_to_query = get_keywords(args, db)
+    filtered_pairs = get_keywords(args, db)
 
     # create pairs and check that the pairs of keywords are not too co-occurring
-    filtered_pairs = create_and_filter_pairs(db, keywords_to_query)
+    #filtered_pairs = create_and_filter_pairs(db, keywords_to_query)
 
     # create the query with the "(BSC AND BARCELONA) OR (BSC AND MADRID)" format and the timespan
     mynews = db['mynews']

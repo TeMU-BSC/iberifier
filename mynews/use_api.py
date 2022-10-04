@@ -4,6 +4,7 @@ import os
 import importlib.util
 import argparse
 import datetime
+import time
 
 cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
 spec = importlib.util.spec_from_file_location("credentials", cred_path)
@@ -35,23 +36,18 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(collection, headers, pairs, args):
-    query = ''
-    for pair in pairs:
-        string = '(' + pair[0] + ' AND ' + pair[1] + ') OR '
-        query += string
-    query = query[:-3]
-
-    #print(query)
-
+def query(query_expression, token, args):
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=10)
-
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
+    headers = {
+        'Authorization': f"Bearer {token.text}",
+    }
+
     files = {
-        'query': (None, query),
+        'query': (None, query_expression),
         'fromTime': (None, start_int),
         'toTime': (None, end_int),
         'maxResults': (None, args.max),
@@ -59,20 +55,7 @@ def query(collection, headers, pairs, args):
 
     response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=files)
 
-    results = response.json()
-
-    if len(results) == 0:
-        print(type(results['news']), len(results['news']))
-        collection.insert_many(results['news'])
-
-        for element in results['news']:
-            print(element['Title'])
-        return results
-    else:
-        print('no results')
-        print(query)
-        print(start_int)
-        print(end_int)
+    return response.json()
 
 def get_keywords(args, db):
     dict_keywords = {}
@@ -91,25 +74,6 @@ def get_keywords(args, db):
             dict_keywords[fact['_id']] = fact['keyword_pairs']
     return dict_keywords
 
-# def create_and_filter_pairs(db, keywords_to_query):
-#     print('Filtering the keywords might take some time...')
-#     dict_pairs = {}
-#     for ids, keywords in keywords_to_query.items():
-#         dict_pairs[ids] = []
-#         pairs = ((x, y) for x in keywords for y in keywords if y > x)
-#         for pair in pairs:
-#             # filter pairs that are too co-occurring
-#             check = [x.lower() for x in pair]
-#             #print(check)
-#             cursor = db["cooccurrence"].find_one({'words':check}) # TODO: cooccurrence dicionaty has to be bigger and dynamic
-#             # TODO: these still takes quite too much time, find if we have a better solution
-#             if cursor:
-#                 #print(cursor['counts'])
-#                 if cursor['counts'] > 15:
-#                     break
-#             dict_pairs[ids].append(pair)
-#
-#     return dict_pairs
 
 def time_to_int(dateobj):
     total = int(dateobj.strftime('%S'))
@@ -118,6 +82,14 @@ def time_to_int(dateobj):
     total += (int(dateobj.strftime('%j')) - 1) * 60 * 60 * 24
     total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
     return total
+
+def write_query(pairs):
+    query = ''
+    for pair in pairs:
+        string = '(' + pair[0] + ' AND ' + pair[1] + ') OR '
+        query += string
+    query = query[:-3]
+    return query
 
 def main():
     parser = argparse.ArgumentParser()
@@ -130,19 +102,21 @@ def main():
     # look for the fact-checks of a certain time span and extract the tokens
     filtered_pairs = get_keywords(args, db)
 
-    # create pairs and check that the pairs of keywords are not too co-occurring
-    #filtered_pairs = create_and_filter_pairs(db, keywords_to_query)
-
     # create the query with the "(BSC AND BARCELONA) OR (BSC AND MADRID)" format and the timespan
     mynews = db['mynews']
     token = get_token()
 
-    headers = {
-        'Authorization': f"Bearer {token.text}",
-    }
     for ids, pairs in filtered_pairs.items():
-        query(mynews, headers, pairs, args)
-        #exit()
+        query_expression = write_query(pairs)
+        print(query_expression)
+        result = query(query_expression, token, args)
+        print(result)
+        if len(result) > 0 and not result == {'detail': 'Too many requests, wait 1h'}:
+            print(type(result['news']), len(result['news']))
+            mynews.insert_many(result['news'])
+        elif result == {'detail': 'Too many requests, wait 1h'}:
+            print('Rate limit, wait 1 hour.')
+            time.sleep(3660)
 
 
     # TODO: should I limit the number of queries and max articles per month? Make the calculations

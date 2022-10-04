@@ -17,7 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
 ## Setting up to rerun or not (True/False)
-RERUN = False
+#RERUN = False
 
 # Logging options
 import logging
@@ -163,6 +163,16 @@ def get_arguments(parser):
         action='store_true',
         help="use when there is a lot of data, and not just the daily run",
     )
+    parser.add_argument(
+        "--rerun",
+        action='store_true',
+        help="rerun the keywords generation",
+    )
+    parser.add_argument(
+        "--time_window",
+        action='store_true',
+        help="compute keywords just for the last two days",
+    )
     return parser
 
 def detect_lang(txt):
@@ -171,16 +181,16 @@ def detect_lang(txt):
 
 
 def parsing_new_fact_maldita(db, collection, search):
-    cursor = db[collection].find(search) # TODO: it has to find the ones from the indicated date, not any random
+    cursor = db[collection].find(search)
     for record in cursor:
-        print(record)
+        #print(record)
         fact_id = record["_id"]
         text = record["text"]
         try:
             content = BeautifulSoup(record["content"], "lxml").text
             #text = record["text"] + " " + clean_content
         except TypeError:  # Maybe empty
-            content  =None
+            content = None
 
         print(text)
         yield fact_id, text, content, None
@@ -198,13 +208,14 @@ def parsing_new_fact_google(db, collection, search):
     cursor.close()
 
 
-def text_from_facts(db=None, collection=None, rerun=None):
-    #today = datetime.today()
-    #days_ago = today - timedelta(days=4)
-    if rerun is False:
-        search = {"keywords": {"$exists": False}}#, "date":{'$gt': days_ago, '$lt': today}}
-    else:
-        search = {}# {"date":{'$gt': days_ago, '$lt': today}}
+def text_from_facts(db, collection, args):
+    search = {}
+    if not args.rerun:
+        search["keywords"] = {"$exists": False}
+    if args.time_window:
+        today = datetime.today()
+        days_ago = today - timedelta(days=2)
+        search["date"] = {'$gt': days_ago, '$lt': today}
     if collection == "maldita":
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == "google":
@@ -262,9 +273,6 @@ def main():
     #col_cooccurence = "cooccurrence"
 
     # Load models
-    # TODO the aggregation_strategy raises a warning because it is not
-    # implemented, while the doc says it is
-    # https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus/blob/main/README.md
     dict_models = {("ner","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
                    ("pos","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-pos",
                    ("ner", "ca"):"projecte-aina/roberta-base-ca-cased-ner",
@@ -282,7 +290,7 @@ def main():
 
     ## Running
     for col_to_parse in ["maldita", "google"]:
-        for fact_id, text, content, lang in text_from_facts(db, col_to_parse, rerun=RERUN):
+        for fact_id, text, content, lang in text_from_facts(db, col_to_parse, args): # TODO: detect the languages in the batch and load the models one time
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:

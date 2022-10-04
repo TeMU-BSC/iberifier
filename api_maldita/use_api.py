@@ -65,7 +65,7 @@ def daily_call(user, key, mycol):
     else:
         for element in data:
             element['date'] = datetime.datetime.strptime(element['createdAt'], '%Y-%m-%dT%H:%M:%S%z')
-        #print(data)
+        print(data)
         mycol.insert_many(data)
 
 

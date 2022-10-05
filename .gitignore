@@ -134,6 +134,7 @@ credentials.py
 .env
 twittercredentials.yaml
 twitterkeys.txt
+*credentials*
 
 # Data folder
 data/

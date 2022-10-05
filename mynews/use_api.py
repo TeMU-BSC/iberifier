@@ -21,9 +21,8 @@ def get_arguments(parser):
     parser.add_argument("--auto_query", action='store_true', help="The queries will be generated automatically from the fact-checks of that time span")
     parser.add_argument("--fromD", default=None, type=str, required=False) #"1654321118"
     parser.add_argument("--toD", default=None, type=str, required=False) #"1656913073"
-    parser.add_argument("--max", default="2", type=str, required=False)
-    parser.add_argument("--query", default="(BSC AND BARCELONA) OR (BSC AND MADRID)", type=str, required=False,
-                        help="the tokens to query, it does not make sense if --auto_query is selected")
+    parser.add_argument("--max", default="0", type=str, required=False, help="0 retuurns only the number of outputs to the query")
+    parser.add_argument("--query", default=None, type=str, required=False, help="the tokens to query, it does not make sense if --auto_query is selected")
     parser.add_argument("--topic", default="13", type=str, required=False, help='the topic of the news, it does not make sense if --auto_query is selected')
     return parser
 
@@ -38,7 +37,7 @@ def get_token():
 
 def query(query_expression, token, args):
     end = datetime.datetime.today()
-    start = end - datetime.timedelta(days=10)
+    start = end - datetime.timedelta(days=5)
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
@@ -51,6 +50,7 @@ def query(query_expression, token, args):
         'fromTime': (None, start_int),
         'toTime': (None, end_int),
         'maxResults': (None, args.max),
+        'relevance': (None, 80),
     }
 
     response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=files)
@@ -65,7 +65,7 @@ def get_keywords(args, db):
             start = args.toD
         else:
             end = datetime.datetime.today()
-            start = end - datetime.timedelta(days=1)
+            start = end - datetime.timedelta(days=3)
         search = {"date":{'$gt': start, '$lt': end}}
         cursor = db[collection].find(search)
         for fact in cursor:
@@ -88,7 +88,7 @@ def write_query(pairs):
     for pair in pairs:
         string = '(' + pair[0] + ' AND ' + pair[1] + ') OR '
         query += string
-    query = query[:-3]
+    query = query[:-4]
     return query
 
 def main():
@@ -110,20 +110,20 @@ def main():
         query_expression = write_query(pairs)
         print(query_expression)
         result = query(query_expression, token, args)
-        #print(result)
-        if len(result) > 0 and not result == {'detail': 'Too many requests, wait 1h'}:
+        print(result)
+        if result == {'detail': 'Too many requests, wait 1h'}:
+            print('Rate limit, wait 1 hour.')
+            time.sleep(3660)
+        elif len(result['news']) != 0:
             news = result['news']
             print('Results found:',len(news))
             for n in news:
                 n['related_to'] = ids[0]
                 n['related_to_source'] = ids[1]
             mynews.insert_many(news)
-        elif result == {'detail': 'Too many requests, wait 1h'}:
-            print('Rate limit, wait 1 hour.')
-            time.sleep(3660)
 
 
-    # TODO: should I limit the number of queries and max articles per month? Make the calculations
+    # TODO: how should I limit the number of queries and max articles per month? Make the calculations
 
 
 if __name__ == "__main__":

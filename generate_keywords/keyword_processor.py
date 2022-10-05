@@ -172,8 +172,9 @@ def get_arguments(parser):
     )
     parser.add_argument(
         "--time_window",
-        action='store_true',
-        help="compute keywords just for the last two days",
+        default=None,
+        type=int,
+        help="Number of days to compute",
     )
     return parser
 
@@ -216,7 +217,7 @@ def text_from_facts(db, collection, args):
         search["keyword_pairs"] = {"$exists": False}
     if args.time_window:
         today = datetime.today()
-        days_ago = today - timedelta(days=1)
+        days_ago = today - timedelta(days=args.time_window)
         search["date"] = {'$gt': days_ago, '$lt': today}
     if collection == "maldita":
         print('Searching in maldita for:',search)
@@ -333,25 +334,27 @@ def main():
 
                 # if this does not give enough keywords, try other ways, these ways are ordered strategically
 
-                if len(keywords) < 4:
+                if len(keywords) < 3:
                     if content != None:
                         content_ner = get_ner(ner_model, content)
                         content_ner = remove_nonalpha(content_ner)
                         keywords += content_ner
-                if len(keywords) < 4:
+                if len(keywords) < 3:
                     content_pos = get_pos(pos_model, content, "NOUN")
                     content_pos = remove_nonalpha(content_pos)
                     keywords += content_pos
 
-                if len(keywords) < 4:
+                if len(keywords) < 3:
                     adjectives = get_pos(pos_model, text, "ADJ")
                     adjectives = remove_nonalpha(adjectives)
                     keywords += adjectives
-                if len(keywords) < 4:
+                if len(keywords) < 3:
                     verbs = get_pos(pos_model, text, "VERB")
                     verbs = remove_nonalpha(verbs)
                     keywords += verbs
 
+                if len(keywords) > 6:
+                    keywords = keywords[:6]
                 keywords.sort()
                 print('KEYWORDS:', keywords)
 

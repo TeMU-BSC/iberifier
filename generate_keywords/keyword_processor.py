@@ -1,26 +1,27 @@
 #from genericpath import commonprefix
-import re
-from bs4 import BeautifulSoup
-import string
-
+import argparse
 import itertools
+import logging
+import os
+import re
+import string
+import sys
 from datetime import datetime, timedelta
+
+from bs4 import BeautifulSoup
 #from collections import OrderedDict
 from language_detector import detect_language
-import argparse
-import sys, os
-
 #from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
-## Setting up to rerun or not (True/False)
+
+# Setting up to rerun or not (True/False)
 #RERUN = False
 
 # Logging options
-import logging
 
 logger_level = "DEBUG"
 stream_level = "INFO"
@@ -29,7 +30,8 @@ file_level = "ERROR"
 logger = logging.getLogger(__name__)
 logger_set_level = getattr(logging, logger_level)
 logger.setLevel(logger_set_level)
-formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+formatter = logging.Formatter(
+    "%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
 
 stream_handler = logging.StreamHandler()
 stream_set_level = getattr(logging, stream_level)
@@ -78,30 +80,6 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
         )
 
 
-def create_keyword_list(ner_ent=None, pos_ent=None):
-    ner_words = list()
-    pos_words = list()
-
-    if ner_ent:
-        for key in ner_ent:
-            ner_words = ner_words + ner_ent[key]
-        ner_words = list(set(ner_words))  # Sometimes same entity appears several times
-
-        # In case the list is at least two words
-        if len(ner_words) >= 2:
-            return ner_words
-
-    if pos_ent:
-        for key in pos_ent:
-            if key in ["NOUN", "ADJ"]:
-                pos_words = pos_words + pos_ent[key]
-        # print("POS WORDS: {}".format(pos_words))
-        full_list = sorted(
-            ner_words + pos_words
-        )  # Sometimes same entity appears several times
-
-        return full_list
-    return []
 
 
 def create_bigrams(db, col_dict, keywords_list):
@@ -144,7 +122,8 @@ def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str 
 
 
 def extract_url(txt):
-    url_re = re.compile("http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
+    url_re = re.compile(
+        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
     txt, urls = remove_compiled_regex(txt=txt, compiled_regex=url_re)
     return txt, urls
 
@@ -158,6 +137,7 @@ def select_model(lang, model_es, model_pt, model_cat):
         return model_cat
     else:
         pass
+
 
 def get_arguments(parser):
     parser.add_argument(
@@ -177,6 +157,7 @@ def get_arguments(parser):
     )
     return parser
 
+
 def detect_lang(txt):
     lang_dect = detect_language(txt)
     return lang_dect["pref_lang"]
@@ -185,7 +166,7 @@ def detect_lang(txt):
 def parsing_new_fact_maldita(db, collection, search):
     cursor = db[collection].find(search)
     for record in cursor:
-        #print(record)
+        # print(record)
         fact_id = record["_id"]
         text = record["text"]
         try:
@@ -219,40 +200,71 @@ def text_from_facts(db, collection, args):
         days_ago = today - timedelta(days=1)
         search["date"] = {'$gt': days_ago, '$lt': today}
     if collection == "maldita":
-        print('Searching in maldita for:',search)
+        print('Searching in maldita for:', search)
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == "google":
-        print('Searching in google for:',search)
+        print('Searching in google for:', search)
         return parsing_new_fact_google(db, collection, search)
     else:
         raise Exception("Not the right collection")
 
+
 def load_nlp_model(task, lang, models):
-    logger.info("Load {} {} model: {}".format(lang, task, models[(task,lang)]))
+    logger.info("Load {} {} model: {}".format(
+        lang, task, models[(task, lang)]))
     nlp_model = pipeline(
-        ("token-classification" if task=="pos" else task),
-        model=models[(task,lang)],
-        tokenizer=models[(task,lang)],
+        ("token-classification" if task == "pos" else task),
+        model=models[(task, lang)],
+        tokenizer=models[(task, lang)],
         aggregation_strategy="max",
     )
     return nlp_model
+
 
 def remove_nonalpha(strings):
     new = []
     for s in strings:
         new.append(''.join(x for x in s if x.isalpha()))
-    new = list(set([n for n in new if n !='']))
+    new = list(set([n for n in new if n != '']))
     return new
+
+def create_keyword_list(ner_ent=None, pos_ent=None):
+    ner_words = list()
+    pos_words = list()
+
+    if ner_ent:
+        for key in ner_ent:
+            ner_words = ner_words + ner_ent[key]
+        # Sometimes same entity appears several times
+        ner_words = list(set(ner_words))
+
+        # In case the list is at least two words
+        if len(ner_words) >= 2:
+            return ner_words
+
+    if pos_ent:
+        for key in pos_ent:
+            if key in ["NOUN", "ADJ"]:
+                pos_words = pos_words + pos_ent[key]
+        # print("POS WORDS: {}".format(pos_words))
+        full_list = sorted(
+            ner_words + pos_words
+        )  # Sometimes same entity appears several times
+
+        return full_list
+    return []
 
 def get_pos(pos_model, text, type):
     pos = []
     try:
         for element in pos_model(text):
-            if element['entity_group'] == type: #or element['entity_group'] == 'PROPN':
+            # or element['entity_group'] == 'PROPN':
+            if element['entity_group'] == type:
                 pos.append(element['word'])
         return pos
     except:
         return []
+
 
 def get_ner(ner_model, text):
     ner = []
@@ -263,23 +275,26 @@ def get_ner(ner_model, text):
     except:
         return []
 
+
 def create_and_filter_pairs(db, keywords):
     filtered_pairs = []
     pairs = ((x, y) for x in keywords for y in keywords if y > x)
     for pair in pairs:
-        #print(pair)
+        # print(pair)
         # filter pairs that are too co-occurring
         check = [x.lower() for x in pair]
-        #print(check)
-        cursor = db["cooccurrence"].find_one({'words':check}) # TODO: cooccurrence dicionaty has to be bigger and dynamic
+        # print(check)
+        # TODO: cooccurrence dicionaty has to be bigger and dynamic
+        cursor = db["cooccurrence"].find_one({'words': check})
         # TODO: these still takes quite too much time, find if we have a better solution -> olivier will index
         if cursor:
-            #print(cursor['counts'])
+            # print(cursor['counts'])
             if cursor['counts'] > 15:
                 continue
         filtered_pairs.append(pair)
-        #print(filtered_pairs)
+        # print(filtered_pairs)
     return filtered_pairs
+
 
 def main():
 
@@ -288,21 +303,21 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    ## DB Connection
+    # DB Connection
     logger.info("Connecting to the db")
     db = mongo_utils.get_mongo_db()
     logger.info("Connected to: {}".format(db))
     #col_cooccurence = "cooccurrence"
 
     # Load models
-    dict_models = {("ner","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
-                   ("pos","es"):"PlanTL-GOB-ES/roberta-base-bne-capitel-pos",
-                   ("ner", "ca"):"projecte-aina/roberta-base-ca-cased-ner",
+    dict_models = {("ner", "es"): "PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
+                   ("pos", "es"): "PlanTL-GOB-ES/roberta-base-bne-capitel-pos",
+                   ("ner", "ca"): "projecte-aina/roberta-base-ca-cased-ner",
                    ("pos", "ca"): "projecte-aina/roberta-base-ca-cased-pos",
                    ("ner", "pt"): "monilouise/ner_news_portuguese",
                    ("pos", "pt"): "wietsedv/xlm-roberta-base-ft-udpos28-pt"
                    }
-    if args.historical: # loading all the models is not efficient in daily calls
+    if args.historical:  # loading all the models is not efficient in daily calls
         nlp_ner_es = load_nlp_model("ner", "es", dict_models)
         nlp_pos_es = load_nlp_model("pos", "es", dict_models)
         nlp_ner_cat = load_nlp_model("ner", "ca", dict_models)
@@ -310,21 +325,24 @@ def main():
         nlp_ner_pt = load_nlp_model("ner", "pt", dict_models)
         nlp_pos_pt = load_nlp_model("pos", "pt", dict_models)
 
-    ## Running
+    # Running
     for col_to_parse in ["maldita", "google"]:
-        for fact_id, text, content, lang in text_from_facts(db, col_to_parse, args): # TODO: detect the languages in the batch and load the models one time
+        # TODO: detect the languages in the batch and load the models one time
+        for fact_id, text, content, lang in text_from_facts(db, col_to_parse, args):
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:
                 if args.historical:
-                    ner_model = select_model(lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-                    pos_model = select_model(lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
+                    ner_model = select_model(
+                        lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
+                    pos_model = select_model(
+                        lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
                 else:
                     ner_model = load_nlp_model("ner", lang, dict_models)
                     pos_model = load_nlp_model("pos", lang, dict_models)
 
                 text, urls_extracted = extract_url(text)
-                #print(urls_extracted)
+                # print(urls_extracted)
 
                 keywords = get_ner(ner_model, text)
                 result_pos = get_pos(pos_model, text, "NOUN")

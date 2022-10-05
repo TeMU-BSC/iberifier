@@ -4,7 +4,7 @@ python api_google/use_api.py --query daily
 python api_maldita/use_api.py --query daily
 
 # create the keywords for the new news
-python generate_keywords/keyword_processor.py
+python generate_keywords/keyword_processor.py --time_window
 
 # get tweets that could be related to the fact-checks
 

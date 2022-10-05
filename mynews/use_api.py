@@ -65,13 +65,13 @@ def get_keywords(args, db):
             start = args.toD
         else:
             end = datetime.datetime.today()
-            start = end - datetime.timedelta(days=2)
+            start = end - datetime.timedelta(days=1)
         search = {"date":{'$gt': start, '$lt': end}}
         cursor = db[collection].find(search)
         for fact in cursor:
-            print(fact['text'])
-            print(fact['keyword_pairs'])
-            dict_keywords[fact['_id']] = fact['keyword_pairs']
+            #print(fact['text'])
+            #print(fact['keyword_pairs'])
+            dict_keywords[(fact['_id'], collection)] = fact['keyword_pairs']
     return dict_keywords
 
 
@@ -110,10 +110,14 @@ def main():
         query_expression = write_query(pairs)
         print(query_expression)
         result = query(query_expression, token, args)
-        print(result)
+        #print(result)
         if len(result) > 0 and not result == {'detail': 'Too many requests, wait 1h'}:
-            print(type(result['news']), len(result['news']))
-            mynews.insert_many(result['news'])
+            news = result['news']
+            print('Results found:',len(news))
+            for n in news:
+                n['related_to'] = ids[0]
+                n['related_to_source'] = ids[1]
+            mynews.insert_many(news)
         elif result == {'detail': 'Too many requests, wait 1h'}:
             print('Rate limit, wait 1 hour.')
             time.sleep(3660)

@@ -58,8 +58,8 @@ def historical_call(credentials, mycol):
 def daily_call(credentials, mycol):
     # add here all the media coming from the historical data: db.google.distinct("claimReview.publisher.name");
     list_media = [
-        #"antena3.com",
-        #"europapress.es",
+        "antena3.com",
+        "europapress.es",
         "newtral.es",
     ]
 
@@ -74,7 +74,6 @@ def daily_call(credentials, mycol):
             data = response["claims"]
             print(len(data))
             for element in data:
-                print(element['claimReview'][0]['reviewDate'])
                 element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
             mycol.insert_many(data)
         except:

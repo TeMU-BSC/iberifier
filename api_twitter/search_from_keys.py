@@ -84,7 +84,7 @@ def main():
                     len("() {}".format(twitter_additional_query))
                 ):
                     query = newquery
-                    newquery += " OR " + " ".join(doc[keyword_pairs][i])
+                    newquery += " OR " + " ".join(keyword_pairs[i])
                     i += 1
 
                 # query = "(" + query + ") -is:retweet"

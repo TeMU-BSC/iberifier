@@ -6,9 +6,9 @@ from datetime import datetime
 import yaml
 
 from api_twitter import search_twitter
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
 logger = logging.getLogger(__name__)
@@ -104,13 +104,6 @@ def main():
             {"_id": {"$in": sources_to_update}}, {
                 "$set": {"searched_on": datetime.now()}}
         )
-
-
-def main():
-    mydb = mongo_utils.get_mongo_db()
-    col_tweet_name = config_all["mongodb_params"]["col_name"]
-    col_tweets = mydb[col_tweet_name]
-    col_tweets.create_index([("id", 1)], unique=True)
 
 
 if __name__ == "__main__":

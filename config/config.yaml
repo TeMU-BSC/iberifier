@@ -1,29 +1,6 @@
-mongodb_params:
-  
-  mongodb_cred_filename: mongodb_credentials.yaml
-  col_google: google
-  col_maldita: maldita
-  col_tweets: tweets
-  col_mynews: mynews
-  indexes: null
-
-
-api_google_params:
-  api_cred_filename: api_google_credentials.yaml
-  search_on_key: search_on
-
-
-api_maldita_params:
-  api_cred_filename: api_maldita_credentials.yaml
-
-
-api_mynews_params:
-  pass: pass
-
-
 api_twitter_params:
 
-  search_on_key: search_on
+  search_on_key: &search_twitter search_on
   twitter_cred_filename: api_twitter_credentials.yaml
   max_claims_per_day: 100
   search_params:
@@ -51,6 +28,18 @@ api_twitter_params:
     stringify: true
 
 
+api_google_params:
+  api_cred_filename: api_google_credentials.yaml
+  search_on_key: search_on
+
+
+api_maldita_params:
+  api_cred_filename: api_maldita_credentials.yaml
+
+
+api_mynews_params:
+
+
 keywords_params:
   
   keywords_key: keywords
@@ -64,6 +53,25 @@ keywords_params:
   pos_pt_model: wietsedv/xlm-roberta-base-ft-udpos28-pt
 
 
-pipeline_params:
+mongodb_params:
+  
+  mongodb_cred_filename: mongodb_credentials.yaml
+  google:
+    name: google
+    index: null
+  maldita: 
+    name: maldita
+    index: null 
+  tweets: 
+    name: tweets
+    index: {id: 1, *search_twitter: 1} 
 
-  pass: pass
+  mynews: 
+    name: mynews
+    index: null
+  cooccurrence:
+    name: cooccurrence
+    index: {count: 1, words: 1}
+    
+
+pipeline_params:

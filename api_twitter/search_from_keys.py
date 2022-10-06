@@ -19,13 +19,13 @@ config_path = os.path.join(os.path.dirname(__file__), '../config', 'config.yaml'
 config_all = yaml.safe_load(open(config_path))
 
 
-mongo_cred_path = os.path.join(
-    os.path.dirname(__file__),
-    "../config",
-    config_all["mongodb_params"]["mongodb_cred_filename"],
-)
-mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
-    "mongodb_credentials"]
+# mongo_cred_path = os.path.join(
+#     os.path.dirname(__file__),
+#     "../config",
+#     config_all["mongodb_params"]["mongodb_cred_filename"],
+# )
+# mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
+#     "mongodb_credentials"]
 
 twitter_cred_path = os.path.join(
     os.path.dirname(__file__),
@@ -44,9 +44,11 @@ def insert_tweets_mongo(tweet, collection):
 def main():
     # Iterate through collection
     mydb = mongo_utils.get_mongo_db()
-    cols_factcheckers = ['maldita', 'google']
-    col_tweets = config_all['mongodb_params']['col_tweets']
+    col_google = config_all['mongodb_params']['google']['name']
+    col_maldita = config_all['mongodb_params']['maldita']['name']
+    col_tweets = config_all['mongodb_params']['tweets']['name']
 
+    cols_factcheckers = [col_maldita, col_google]
     keyword_pairs_key = config_all['keywords_params']['keywords_pair_keys']
 
     max_claims_per_day = config_all['api_twitter_params']['max_claims_per_day']

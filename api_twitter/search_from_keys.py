@@ -96,7 +96,7 @@ def main():
                     twitter_credentials, query, search_params=twitter_search_params, rule_params=twitter_rule_params)
 
                 for tweet in tweets:
-                    insert_tweets_mongo(tweet, col_tweets)
+                    insert_tweets_mongo(tweet, mydb[col_tweets])
 
             sources_to_update.append(news_id)
 

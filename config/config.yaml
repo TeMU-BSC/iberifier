@@ -1,38 +1,69 @@
 mongodb_params:
+  
   mongodb_cred_filename: mongodb_credentials.yaml
-  col_name: 'tweets_miscarriage_2022_last'
+  col_google: google
+  col_maldita: maldita
+  col_tweets: tweets
+  col_mynews: mynews
+  indexes: null
+
 
 api_google_params:
-  pass: pass
+  api_cred_filename: api_google_credentials.yaml
+  search_on_key: search_on
+
 
 api_maldita_params:
-  pass: pass
+  api_cred_filename: api_maldita_credentials.yaml
+
 
 api_mynews_params:
   pass: pass
 
+
 api_twitter_params:
 
-  twitter_cred_filename: twittercredentials.yaml
-  max_tweets: 100000
-  results_per_call: 500
-  date: '28-09-2022'
-  days_before: 0
-  days_after: 0
-  since_id: null
-  # since_id: '1575199451903594497'
-  query: ['']
-  additional_query: ['-is:retweet']
-  expansions: ['geo.place_id','attachments.media_keys', 'referenced_tweets.id', 'author_id']
-  tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
-              "referenced_tweets", "created_at", "geo", "id", "lang", "public_metrics", "text"]
-  user_fields: ['username', 'created_at', 'location']
-  media_fields: ['type', 'url']
-  place_fields: ['country', 'full_name']
-  granularity: null
-  output_format: a
-  stringify: true
+  search_on_key: search_on
+  twitter_cred_filename: api_twitter_credentials.yaml
+  max_claims_per_day: 100
+  search_params:
+
+    query: null
+    additional_query: ['-is:retweet']
+    max_tweets: 1000
+    date: null
+    # date: '28-09-2022'
+    days_before: 0
+    days_after: 0
+    output_format: a
+
+  rule_params:
+    results_per_call: 500
+    since_id: null
+    # since_id: '1575199451903594497'
+    expansions: ['geo.place_id','attachments.media_keys', 'referenced_tweets.id', 'author_id']
+    tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
+                "referenced_tweets", "created_at", "geo", "id", "lang", "public_metrics", "text"]
+    user_fields: ['username', 'created_at', 'location']
+    media_fields: ['type', 'url']
+    place_fields: ['country', 'full_name']
+    granularity: null
+    stringify: true
+
+
+keywords_params:
+  
+  keywords_key: keywords
+  keywords_pair_keys: keyword_pairs
+  coocurency_threshold: 15
+  ner_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+  pos_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-pos
+  ner_ca_model: projecte-aina/roberta-base-ca-cased-ner
+  pos_ca_model: projecte-aina/roberta-base-ca-cased-pos
+  ner_pt_model: monilouise/ner_news_portuguese
+  pos_pt_model: wietsedv/xlm-roberta-base-ft-udpos28-pt
 
 
 pipeline_params:
+
   pass: pass

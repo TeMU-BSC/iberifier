@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 # Load config and credentials
 
-config_all = yaml.safe_load(open("../config_files/config.yaml"))
+config_all = yaml.safe_load(open("../config/config.yaml"))
 
 mongo_cred_path = os.path.join(
     os.path.dirname(__file__),
-    "../config_files",
+    "../config",
     config_all["mongodb_params"]["mongodb_cred_filename"],
 )
 mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
@@ -27,7 +27,7 @@ mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
 
 twitter_cred_path = os.path.join(
     os.path.dirname(__file__),
-    "../config_files",
+    "../config",
     config_all["api_twitter_params"]["twitter_cred_filename"],
 )
 twitter_credentials = yaml.safe_load(open(twitter_cred_path))[

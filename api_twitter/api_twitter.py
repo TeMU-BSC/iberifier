@@ -48,8 +48,9 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
 
         if search_params["date"] is not None and rule_params["since_id"] is None:
 
-            date = datetime.strptime(
-                search_params['date'], "%Y-%m-%dT%H:%M:%S%z")
+            date = search_params['date']
+            if isinstance(date, str):
+                date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z")
 
             if search_params['days_before'] == 0 and search_params['days_after'] == 0:
                 start_time = date - timedelta(minutes=1)

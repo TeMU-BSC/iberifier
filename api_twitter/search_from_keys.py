@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 # Load config and credentials
 
-config_all = yaml.safe_load(open("../config/config.yaml"))
+config_path = os.path.join(os.path.dirname(__file__), '../config', 'config.yaml')
+config_all = yaml.safe_load(open(config_path))
+
 
 mongo_cred_path = os.path.join(
     os.path.dirname(__file__),

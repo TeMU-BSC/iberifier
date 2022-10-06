@@ -30,7 +30,7 @@ api_twitter_params:
 
     query: null
     additional_query: ['-is:retweet']
-    max_tweets: 1000
+    max_tweets: 500
     date: null
     # date: '28-09-2022'
     days_before: 0

@@ -48,17 +48,13 @@ def historical_call(credentials, mycol, list_media):
             reviewPublisherSiteFilter=media, pageSize=10000, languageCode="es"
         )
         response = request.execute()
-        try:
-            data = response["claims"]
-            logger.info('Number of claims: {}'.format(len(data)))
-            for element in data:
-                # print(element['claimReview'][0]['reviewDate'])
-                element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
-                                                             '%Y-%m-%dT%H:%M:%S%z')
-            mycol.insert_many(data)
-        except Exception as e:
-            logger.error(e)
-            continue
+        data = response["claims"]
+        logger.info('Number of claims: {}'.format(len(data)))
+        for element in data:
+            # print(element['claimReview'][0]['reviewDate'])
+            element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
+                                                         '%Y-%m-%dT%H:%M:%S%z')
+        mycol.insert_many(data)
     logger.info('The 10 first posts inserted')
     for post in mycol.find().limit(10):
         logger.info(post)
@@ -72,16 +68,12 @@ def daily_call(credentials, mycol, list_media):
             reviewPublisherSiteFilter=media, maxAgeDays=3, languageCode="es"
         )
         response = request.execute()
-        try:
-            data = response["claims"]
-            logger.info('Number of claims: {}'.format(len(data)))
-            for element in data:
-                element['date'] = datetime.datetime.strptime(
-                    element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
-            mycol.insert_many(data)
-        except Exception as e:
-            logger.error(e)
-            continue
+        data = response["claims"]
+        logger.info('Number of claims: {}'.format(len(data)))
+        for element in data:
+            element['date'] = datetime.datetime.strptime(
+                element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
+        mycol.insert_many(data)
         logger.info('Resting 20 seconds.')
         time.sleep(20)
 
@@ -104,7 +96,7 @@ def main():
     google_credentials_key = google_credentials['GOOGLE_API_KEY']
     list_medias = config_all['api_google_params']['list_media'] 
     factCheckService = build(
-        "factchecktools", "v1alpha1", developerKey=google_credentails_key(
+        "factchecktools", "v1alpha1", developerKey=google_credentails_key
     )
 
     if args.query == "historical":

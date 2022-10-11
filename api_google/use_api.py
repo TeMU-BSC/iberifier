@@ -37,6 +37,15 @@ def get_arguments(parser):
     return parser
 
 
+def insert_data(data, mycol):
+    """
+    """
+    for element in data:
+        element['date'] = datetime.datetime.strptime(
+            element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
+    mycol.insert_many(data)
+    logger.info('Resting 20 seconds.')
+
 def historical_call(credentials, mycol, list_media):
     # queries = list(stopwords.words('spanish'))[120:] if language == 'es' else list(stopwords.words('portuguese'))
     for media in list_media:
@@ -47,7 +56,7 @@ def historical_call(credentials, mycol, list_media):
         data = response["claims"]
         logger.info('Number of claims: {}'.format(len(data)))
         for element in data:
-            # print(element['claimReview'][0]['reviewDate'])
+            # logger.info(element['claimReview'][0]['reviewDate'])
             element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
                                                          '%Y-%m-%dT%H:%M:%S%z')
         mycol.insert_many(data)
@@ -60,17 +69,18 @@ def daily_call(credentials, mycol, list_media):
     # add here all the media coming from the historical data: db.google.distinct("claimReview.publisher.name");
 
     for media in list_media:
+        logger.info('Querying: {}'.format(media))
         request = credentials.claims().search(
             reviewPublisherSiteFilter=media, maxAgeDays=3, languageCode="es"
         )
         response = request.execute()
-        data = response["claims"]
-        logger.info('Number of claims: {}'.format(len(data)))
-        for element in data:
-            element['date'] = datetime.datetime.strptime(
-                element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
-        mycol.insert_many(data)
-        logger.info('Resting 20 seconds.')
+        try:
+            data = response["claims"]
+            logger.info('Number of claims: {}'.format(len(data)))
+            insert_data(data, mycol)
+        except KeyError:
+            logger.info('No claims')
+            
         time.sleep(20)
 
 

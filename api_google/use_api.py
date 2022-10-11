@@ -5,7 +5,6 @@ import argparse
 import time
 import os
 import yaml
-import importlib.util
 import datetime
 
 
@@ -14,7 +13,8 @@ logger = logging.getLogger(__name__)
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
-config_path = os.path.join(os.path.dirname(__file__), '../config', 'config.yaml')
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
 
 google_cred_path = os.path.join(
@@ -24,6 +24,7 @@ google_cred_path = os.path.join(
 )
 google_credentials = yaml.safe_load(open(google_cred_path))[
     "google_api_credentials"]
+
 
 def get_arguments(parser):
     parser.add_argument(
@@ -89,9 +90,9 @@ def main():
     args = parser.parse_args()
     logger.info('Arguments passed: {}'.format(args))
     google_credentials_key = google_credentials['GOOGLE_API_KEY']
-    list_medias = config_all['api_google_params']['list_media'] 
+    list_media = config_all['api_google_params']['list_media']
     factCheckService = build(
-        "factchecktools", "v1alpha1", developerKey=google_credentails_key
+        "factchecktools", "v1alpha1", developerKey=google_credentials_key
     )
 
     if args.query == "historical":

@@ -30,6 +30,7 @@ api_twitter_params:
 
 api_google_params:
   api_cred_filename: api_google_credentials.yaml
+  list_media: ['antena3.com', 'europapress.es', 'newtral.es']
   search_on_key: search_on
 
 

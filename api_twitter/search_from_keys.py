@@ -30,7 +30,7 @@ config_all = yaml.safe_load(open(config_path))
 twitter_cred_path = os.path.join(
     os.path.dirname(__file__),
     "../config",
-    config_all["api_twitter_params"]["twitter_cred_filename"],
+    config_all["api_twitter_params"]["cred_filename"],
 )
 twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
     "search_tweets_api"]

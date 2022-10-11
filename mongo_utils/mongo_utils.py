@@ -17,7 +17,7 @@ config_all = yaml.safe_load(open(config_path))
 mongo_cred_path = os.path.join(
     os.path.dirname(__file__),
     "../config",
-    config_all["mongodb_params"]["mongodb_cred_filename"],
+    config_all["mongodb_params"]["cred_filename"],
 )
 mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
     "mongodb_credentials"]

@@ -1,7 +1,7 @@
 api_twitter_params:
 
   search_on_key: &search_twitter search_on
-  twitter_cred_filename: api_twitter_credentials.yaml
+  cred_filename: api_twitter_credentials.yaml
   max_claims_per_day: 100
   search_params:
 
@@ -29,13 +29,13 @@ api_twitter_params:
 
 
 api_google_params:
-  api_cred_filename: api_google_credentials.yaml
+  cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
   search_on_key: search_on
 
 
 api_maldita_params:
-  api_cred_filename: api_maldita_credentials.yaml
+  cred_filename: api_maldita_credentials.yaml
 
 
 api_mynews_params:
@@ -56,7 +56,7 @@ keywords_params:
 
 mongodb_params:
   
-  mongodb_cred_filename: mongodb_credentials.yaml
+  cred_filename: mongodb_credentials.yaml
   google:
     name: google
     index: null

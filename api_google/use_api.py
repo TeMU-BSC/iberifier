@@ -1,5 +1,4 @@
 import logging
-from mongo_utils import mongo_utils
 import sys
 from googleapiclient.discovery import build
 import argparse
@@ -9,15 +8,11 @@ import yaml
 import importlib.util
 import datetime
 
-cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
-spec = importlib.util.spec_from_file_location("credentials", cred_path)
-credentials = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(credentials)
-google_credentials = credentials.google_credentials
 
 logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from mongo_utils import mongo_utils
 
 config_path = os.path.join(os.path.dirname(__file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
@@ -25,7 +20,7 @@ config_all = yaml.safe_load(open(config_path))
 google_cred_path = os.path.join(
     os.path.dirname(__file__),
     "../config",
-    config_all["api_google_params"]["google_cred_filename"],
+    config_all["api_google_params"]["cred_filename"],
 )
 google_credentials = yaml.safe_load(open(google_cred_path))[
     "google_api_credentials"]

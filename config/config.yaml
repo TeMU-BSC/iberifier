@@ -36,7 +36,7 @@ api_google_params:
 
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
-  root_url: https://repositorio.iberifier.eu/api/ 
+  root_url: https://repositorio.iberifier.eu/api/contents
 
 
 api_mynews_params:

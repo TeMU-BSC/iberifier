@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import sys
 from googleapiclient.discovery import build
 import argparse

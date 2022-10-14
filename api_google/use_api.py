@@ -8,7 +8,6 @@ import yaml
 import datetime
 
 
-logger = logging.getLogger(__name__)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
@@ -25,6 +24,13 @@ google_cred_path = os.path.join(
 google_credentials = yaml.safe_load(open(google_cred_path))[
     "google_api_credentials"]
 
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 def get_arguments(parser):
     parser.add_argument(

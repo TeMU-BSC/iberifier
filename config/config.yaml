@@ -77,3 +77,7 @@ mongodb_params:
     
 
 pipeline_params:
+
+logging:
+  logging_filename: config_logger.yaml
+  level: dev

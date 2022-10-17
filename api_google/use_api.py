@@ -9,7 +9,6 @@ import yaml
 import datetime
 
 
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
@@ -33,6 +32,7 @@ with open(logging_config_path,  "r") as f:
 
 logger = logging.getLogger(config_all['logging']['level'])
 
+
 def get_arguments(parser):
     parser.add_argument(
         "--query",
@@ -51,44 +51,29 @@ def insert_data(data, mycol):
         element['date'] = datetime.datetime.strptime(
             element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
     mycol.insert_many(data)
-    logger.info('Resting 20 seconds.')
-
-def historical_call(credentials, mycol, list_media):
-    # queries = list(stopwords.words('spanish'))[120:] if language == 'es' else list(stopwords.words('portuguese'))
-    for media in list_media:
-        request = credentials.claims().search(
-            reviewPublisherSiteFilter=media, pageSize=10000, languageCode="es"
-        )
-        response = request.execute()
-        data = response["claims"]
-        logger.info('Number of claims: {}'.format(len(data)))
-        for element in data:
-            # logger.info(element['claimReview'][0]['reviewDate'])
-            element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
-                                                         '%Y-%m-%dT%H:%M:%S%z')
-        mycol.insert_many(data)
-    logger.info('The 10 first posts inserted')
-    for post in mycol.find().limit(10):
-        logger.info(post)
 
 
-def daily_call(credentials, mycol, list_media):
-    # add here all the media coming from the historical data: db.google.distinct("claimReview.publisher.name");
+def api_call(credentials, mycol, list_media, type_query, maxAgeDays=1):
+    params = {'pageSize': 100}
+
+    if type_query == 'daily':
+        params['maxAgeDays'] = maxAgeDays
 
     for media in list_media:
-        logger.info('Querying: {}'.format(media))
-        request = credentials.claims().search(
-            reviewPublisherSiteFilter=media, maxAgeDays=3, languageCode="es"
-        )
-        response = request.execute()
-        try:
-            data = response["claims"]
-            logger.info('Number of claims: {}'.format(len(data)))
-            insert_data(data, mycol)
-        except KeyError:
-            logger.info('No claims')
-            
-        time.sleep(20)
+        query = credentials.claims()
+        request = query.search(
+            reviewPublisherSiteFilter=media, **params)
+        while request is not None:
+            response = request.execute()
+            if response:
+                data = response["claims"]
+                logger.info('Number of claims: {}'.format(len(data)))
+                for element in data:
+                    element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
+                                                                 '%Y-%m-%dT%H:%M:%S%z')
+                mycol.insert_many(data)
+                time.sleep(5)
+            request = query.search_next(request, response)
 
 
 def open_collection(new=False):
@@ -111,14 +96,16 @@ def main():
     factCheckService = build(
         "factchecktools", "v1alpha1", developerKey=google_credentials_key
     )
+    maxAgeDays = config_all['api_googl_params']['maxAgeDays']
 
     if args.query == "historical":
-        collection = open_collection(new=True)
-        historical_call(factCheckService, collection, list_media)
+        collection = open_collection(new=False)
+        api_call(factCheckService, collection, list_media, args.query)
 
     elif args.query == "daily":
         collection = open_collection(new=False)
-        daily_call(factCheckService, collection, list_media)
+        api_call(factCheckService, collection, list_media,
+                 args.query, maxAgeDays=maxAgeDays)
 
 
 if __name__ == "__main__":

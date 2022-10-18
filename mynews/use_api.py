@@ -35,7 +35,7 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(query_expression, token, args):
+def query(query_expression, token, args): # TODO: maybe also limit media
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=5)
     end_int = time_to_int(end)

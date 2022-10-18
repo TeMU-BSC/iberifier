@@ -10,7 +10,7 @@ api_twitter_params:
     max_tweets: 500
     date: null
     # date: '28-09-2022'
-    days_before: 0
+    days_before: 1
     days_after: 0
     output_format: a
 
@@ -32,6 +32,7 @@ api_google_params:
   cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
   search_on_key: search_on
+  maxAgeDays: 3
 
 
 api_maldita_params:

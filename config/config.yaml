@@ -1,38 +1,84 @@
-mongodb_params:
-  mongodb_cred_filename: mongodb_credentials.yaml
-  col_name: 'tweets_miscarriage_2022_last'
-
-api_google_params:
-  pass: pass
-
-api_maldita_params:
-  pass: pass
-
-api_mynews_params:
-  pass: pass
-
 api_twitter_params:
 
-  twitter_cred_filename: twittercredentials.yaml
-  max_tweets: 100000
-  results_per_call: 500
-  date: '28-09-2022'
-  days_before: 0
-  days_after: 0
-  since_id: null
-  # since_id: '1575199451903594497'
-  query: ['']
-  additional_query: ['-is:retweet']
-  expansions: ['geo.place_id','attachments.media_keys', 'referenced_tweets.id', 'author_id']
-  tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
-              "referenced_tweets", "created_at", "geo", "id", "lang", "public_metrics", "text"]
-  user_fields: ['username', 'created_at', 'location']
-  media_fields: ['type', 'url']
-  place_fields: ['country', 'full_name']
-  granularity: null
-  output_format: a
-  stringify: true
+  search_on_key: &search_twitter search_on
+  cred_filename: api_twitter_credentials.yaml
+  max_claims_per_day: 100
+  search_params:
 
+    query: null
+    additional_query: ['-is:retweet']
+    max_tweets: 500
+    date: null
+    # date: '28-09-2022'
+    days_before: 0
+    days_after: 0
+    output_format: a
+
+  rule_params:
+    results_per_call: 500
+    since_id: null
+    # since_id: '1575199451903594497'
+    expansions: ['geo.place_id','attachments.media_keys', 'referenced_tweets.id', 'author_id']
+    tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
+                "referenced_tweets", "created_at", "geo", "id", "lang", "public_metrics", "text"]
+    user_fields: ['username', 'created_at', 'location']
+    media_fields: ['type', 'url']
+    place_fields: ['country', 'full_name']
+    granularity: null
+    stringify: true
+
+
+api_google_params:
+  cred_filename: api_google_credentials.yaml
+  list_media: ['antena3.com', 'europapress.es', 'newtral.es']
+  maxAgeDays: 3
+  search_on_key: search_on
+
+
+api_maldita_params:
+  cred_filename: api_maldita_credentials.yaml
+  root_url: https://repositorio.iberifier.eu/api/contents
+
+
+api_mynews_params:
+
+
+keywords_params:
+  
+  keywords_key: keywords
+  keywords_pair_keys: keyword_pairs
+  coocurency_threshold: 15
+  ner_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+  pos_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-pos
+  ner_ca_model: projecte-aina/roberta-base-ca-cased-ner
+  pos_ca_model: projecte-aina/roberta-base-ca-cased-pos
+  ner_pt_model: monilouise/ner_news_portuguese
+  pos_pt_model: wietsedv/xlm-roberta-base-ft-udpos28-pt
+
+
+mongodb_params:
+  
+  cred_filename: mongodb_credentials.yaml
+  google:
+    name: google
+    index: null
+  maldita: 
+    name: maldita
+    index: null 
+  tweets: 
+    name: tweets
+    index: {id: 1, *search_twitter: 1} 
+
+  mynews: 
+    name: mynews
+    index: null
+  cooccurrence:
+    name: cooccurrence
+    index: {count: 1, words: 1}
+    
 
 pipeline_params:
-  pass: pass
+
+logging:
+  logging_filename: config_logger.yaml
+  level: dev

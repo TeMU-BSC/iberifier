@@ -36,7 +36,7 @@ api_google_params:
 
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
-  root_url: https://repositorio.iberifier.eu/api/contents
+root_url: https://repositorio.iberifier.eu/api/contents
 
 
 api_mynews_params:
@@ -47,12 +47,15 @@ keywords_params:
   keywords_key: keywords
   keywords_pair_keys: keyword_pairs
   coocurency_threshold: 15
-  ner_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
-  pos_es_model: PlanTL-GOB-ES/roberta-base-bne-capitel-pos
-  ner_ca_model: projecte-aina/roberta-base-ca-cased-ner
-  pos_ca_model: projecte-aina/roberta-base-ca-cased-pos
-  ner_pt_model: monilouise/ner_news_portuguese
-  pos_pt_model: wietsedv/xlm-roberta-base-ft-udpos28-pt
+  language_models:
+    ner:
+      es: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+      ca: projecte-aina/roberta-base-ca-cased-ner
+      pt: monilouise/ner_news_portuguese
+    pos:
+      es: PlanTL-GOB-ES/roberta-base-bne-capitel-pos
+      ca: projecte-aina/roberta-base-ca-cased-pos
+      pt: wietsedv/xlm-roberta-base-ft-udpos28-pt
 
 
 mongodb_params:

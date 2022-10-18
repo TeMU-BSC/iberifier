@@ -96,7 +96,7 @@ def main():
     factCheckService = build(
         "factchecktools", "v1alpha1", developerKey=google_credentials_key
     )
-    maxAgeDays = config_all['api_googl_params']['maxAgeDays']
+    maxAgeDays = config_all['api_google_params']['maxAgeDays']
 
     if args.query == "historical":
         collection = open_collection(new=False)

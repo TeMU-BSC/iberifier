@@ -45,15 +45,18 @@ def main():
         for line in reader:
             data.append(line)
 
-    navarra_media_names = []
+    # TODO: keep the id of the media in the navarra list so we can match it later
+    navarra_media_names = {}
     for line in data[1:]:
-        navarra_media_names.append(line[0].lower())
+        navarra_media_names[line[0].lower] = line[72]
+        #navarra_media_names.append(line[0].lower())
         url = line[1]
         pre = re.findall('http[s]?:\/\/[w\.]{0,4}', url)
         if not pre:
             pre = ['']
         part_url = url[len(pre[0]):len(url)].replace(r'/', '')
-        navarra_media_names.append(part_url)
+        navarra_media_names[part_url] = line[72]
+        #navarra_media_names.append(part_url)
     #print(navarra_media_names)
     # call from the list of media in the mynews API
     token = get_token()
@@ -71,21 +74,21 @@ def main():
     matches = []
     for i in mynews_media_names:
         if i.lower() in navarra_media_names:
-            matches.append(i)
+            matches.append((i, navarra_media_names[i.lower()]))
         i_parts = i.split(' - ')
         for part in i_parts:
             if part.lower() in navarra_media_names:
-                matches.append(i)
+                matches.append((i, navarra_media_names[part.lower()]))
         i_other_parts = i.split('  ')
         for part in i_other_parts:
             if part.lower() in navarra_media_names:
-                matches.append(i)
+                matches.append((i, navarra_media_names[part.lower()]))
         i_other2_parts = i.split('/')
         for part in i_other2_parts:
             if part.lower() in navarra_media_names:
-                matches.append(i)
+                matches.append((i, navarra_media_names[part.lower()]))
         if normalize_string(i) in navarra_media_names:
-            matches.append(i)
+            matches.append((i, navarra_media_names[part.lower()]))
 
     matches = list(set(matches))
     no_matches = [i for i in mynews_media_names if i not in matches]
@@ -94,9 +97,11 @@ def main():
     #print(no_matches)
     print(len(no_matches))
 
-    with open('mynews/matching_list.txt', 'w') as out:
+    with open('mynews/matching_list.csv', 'w') as out:
+        writer = csv.writer(out)
         for line in matches:
-            out.write(line+'\n')
+            writer.writerow(line)
+
 
 
 main()

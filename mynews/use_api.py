@@ -1,3 +1,4 @@
+import csv
 
 import requests
 import os
@@ -35,7 +36,7 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(query_expression, token, args): # TODO: maybe also limit media
+def query(query_expression, token, args, media):
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=5)
     end_int = time_to_int(end)
@@ -44,16 +45,22 @@ def query(query_expression, token, args): # TODO: maybe also limit media
     headers = {
         'Authorization': f"Bearer {token.text}",
     }
+    publications = []
+    for m in media:
+        publications.append(('publications', (None, m)))
 
-    files = {
-        'query': (None, query_expression),
-        'fromTime': (None, start_int),
-        'toTime': (None, end_int),
-        'maxResults': (None, args.max),
-        'relevance': (None, 80),
-    }
+    files = [
+        ('query', (None, query_expression)),
+        ('fromTime', (None, start_int)),
+        ('toTime', (None, end_int)),
+        ('maxResults', (None, args.max)),
+        ('relevance', (None, 80)),
+        ('extraField', (None, "Ref"))
+    ]
 
-    response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=files)
+    extended = files + publications
+
+    response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
 
     return response.json()
 
@@ -69,7 +76,7 @@ def get_keywords(args, db):
         search = {"date":{'$gt': start, '$lt': end}}
         cursor = db[collection].find(search)
         for fact in cursor:
-            #print(fact['text'])
+            print(fact['text'])
             #print(fact['keyword_pairs'])
             dict_keywords[(fact['_id'], collection)] = fact['keyword_pairs']
     return dict_keywords
@@ -85,9 +92,14 @@ def time_to_int(dateobj):
 
 def write_query(pairs):
     query = ''
+    previous_pair = None
     for pair in pairs:
+        #if not previous_pair:
         string = '(' + pair[0] + ' AND ' + pair[1] + ') OR '
+        #else:
+        #    string = '(' + pair[0] + ' AND ' + pair[1] + ') AND ('+ previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
         query += string
+        previous_pair = pair
     query = query[:-4]
     return query
 
@@ -102,6 +114,13 @@ def main():
     # look for the fact-checks of a certain time span and extract the tokens
     filtered_pairs = get_keywords(args, db)
 
+    # TODO: load media list
+    with open('mynews/matching_list.csv') as f:
+        reader = csv.reader(f)
+        media = []
+        for line in reader:
+            media.append(line[0])
+
     # create the query with the "(BSC AND BARCELONA) OR (BSC AND MADRID)" format and the timespan
     mynews = db['mynews']
     token = get_token()
@@ -109,8 +128,12 @@ def main():
     for ids, pairs in filtered_pairs.items():
         query_expression = write_query(pairs)
         print(query_expression)
-        result = query(query_expression, token, args)
+        result = query(query_expression, token, args, media)
         print(result)
+
+        # TODO: discover why the results are so high. Options: too many media, less keywords better, trigrams better
+        # TODO: limit queries with media list from Navarra
+
         if result == {'detail': 'Too many requests, wait 1h'}:
             print('Rate limit, wait 1 hour.')
             time.sleep(3660)
@@ -123,7 +146,7 @@ def main():
             mynews.insert_many(news)
 
 
-    # TODO: how should I limit the number of queries and max articles per month? Make the calculations
+    # TODO: set max articles per day to 100
 
 
 if __name__ == "__main__":

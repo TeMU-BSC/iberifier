@@ -48,7 +48,7 @@ def main():
 
     navarra_media_names = {}
     for line in data[1:]:
-        if line[2] == 'activo' and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
+        if line[2] == 'activo': #and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
             navarra_media_names[line[0].lower()] = line[72]
             url = line[1]
             pre = re.findall('http[s]?:\/\/[w\.]{0,4}', url)

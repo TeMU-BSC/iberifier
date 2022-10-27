@@ -1,7 +1,8 @@
-#from genericpath import commonprefix
+import yaml
 import argparse
 import itertools
 import logging
+import logging.config
 import os
 import re
 import string
@@ -9,35 +10,29 @@ import sys
 from datetime import datetime, timedelta
 
 from bs4 import BeautifulSoup
-#from collections import OrderedDict
+# from collections import OrderedDict
 from language_detector import detect_language
-#from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
 
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
+config_all = yaml.safe_load(open(config_path))
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
+
+
 # Setting up to rerun or not (True/False)
-#RERUN = False
-
-# Logging options
-
-logger_level = "DEBUG"
-stream_level = "INFO"
-file_level = "ERROR"
-
-logger = logging.getLogger(__name__)
-logger_set_level = getattr(logging, logger_level)
-logger.setLevel(logger_set_level)
-formatter = logging.Formatter(
-    "%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
-
-stream_handler = logging.StreamHandler()
-stream_set_level = getattr(logging, stream_level)
-stream_handler.setLevel(stream_set_level)
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
+# RERUN = False
 
 
 def update_fact(
@@ -78,8 +73,6 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
         raise Exception(
             "Issue with removing words from cooccurrency, probably empty list of keywords"
         )
-
-
 
 
 def create_bigrams(db, col_dict, keywords_list):
@@ -172,7 +165,6 @@ def parsing_new_fact_maldita(db, collection, search):
         text = record["text"]
         try:
             content = BeautifulSoup(record["content"], "lxml").text
-            #text = record["text"] + " " + clean_content
         except TypeError:  # Maybe empty
             content = None
 
@@ -201,10 +193,10 @@ def text_from_facts(db, collection, args):
         days_ago = today - timedelta(days=args.time_window)
         search["date"] = {'$gt': days_ago, '$lt': today}
     if collection == "maldita":
-        print('Searching in maldita for:', search)
+        logger.info('Searching in maldita for:', search)
         return parsing_new_fact_maldita(db, collection, search)
     elif collection == "google":
-        print('Searching in google for:', search)
+        logger.info('Searching in google for:', search)
         return parsing_new_fact_google(db, collection, search)
     else:
         raise Exception("Not the right collection")
@@ -212,11 +204,11 @@ def text_from_facts(db, collection, args):
 
 def load_nlp_model(task, lang, models):
     logger.info("Load {} {} model: {}".format(
-        lang, task, models[(task, lang)]))
+        lang, task, models[task][lang]))
     nlp_model = pipeline(
         ("token-classification" if task == "pos" else task),
-        model=models[(task, lang)],
-        tokenizer=models[(task, lang)],
+        model=models[task][lang],
+        tokenizer=models[task][lang],
         aggregation_strategy="max",
     )
     return nlp_model
@@ -228,6 +220,7 @@ def remove_nonalpha(strings):
         new.append(''.join(x for x in s if x.isalpha()))
     new = list(set([n for n in new if n != '']))
     return new
+
 
 def create_keyword_list(ner_ent=None, pos_ent=None):
     ner_words = list()
@@ -255,45 +248,23 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
         return full_list
     return []
 
-def get_pos(pos_model, text, type):
-    pos = []
-    try:
-        for element in pos_model(text):
-            # or element['entity_group'] == 'PROPN':
-            if element['entity_group'] == type:
-                pos.append(element['word'])
-        return pos
-    except:
-        return []
 
-
-def get_ner(ner_model, text):
-    ner = []
-    try:
-        for entity in ner_model(text):
-            ner.append(entity['word'])
-        return ner
-    except:
-        return []
 
 
 def create_and_filter_pairs(db, keywords):
     filtered_pairs = []
     pairs = ((x, y) for x in keywords for y in keywords if y > x)
     for pair in pairs:
-        # print(pair)
         # filter pairs that are too co-occurring
         check = [x.lower() for x in pair]
         # print(check)
-        # TODO: cooccurrence dicionaty has to be bigger and dynamic
+        # TODO: cooccurrence dictionaty has to be bigger and dynamic
         cursor = db["cooccurrence"].find_one({'words': check})
         # TODO: these still takes quite too much time, find if we have a better solution -> olivier will index
         if cursor:
-            # print(cursor['counts'])
-            if cursor['counts'] > 15:
+            if cursor['counts'] > 15:  # TODO is it the threshold we mention last time?
                 continue
         filtered_pairs.append(pair)
-        # print(filtered_pairs)
     return filtered_pairs
 
 
@@ -311,13 +282,7 @@ def main():
     #col_cooccurence = "cooccurrence"
 
     # Load models
-    dict_models = {("ner", "es"): "PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus",
-                   ("pos", "es"): "PlanTL-GOB-ES/roberta-base-bne-capitel-pos",
-                   ("ner", "ca"): "projecte-aina/roberta-base-ca-cased-ner",
-                   ("pos", "ca"): "projecte-aina/roberta-base-ca-cased-pos",
-                   ("ner", "pt"): "monilouise/ner_news_portuguese",
-                   ("pos", "pt"): "wietsedv/xlm-roberta-base-ft-udpos28-pt"
-                   }
+    dict_models = config_all['keywords_params']['language_models']
     if args.historical:  # loading all the models is not efficient in daily calls
         nlp_ner_es = load_nlp_model("ner", "es", dict_models)
         nlp_pos_es = load_nlp_model("pos", "es", dict_models)
@@ -343,7 +308,10 @@ def main():
                     pos_model = load_nlp_model("pos", lang, dict_models)
 
                 text, urls_extracted = extract_url(text)
-                # print(urls_extracted)
+
+                ner_entities = entity_extraction(ner_model, text)
+                pos_entities = entity_extraction(pos_model, text)
+                
 
                 keywords = get_ner(ner_model, text)
                 result_pos = get_pos(pos_model, text, "NOUN")

@@ -128,7 +128,7 @@ def extract_url(txt):
     return txt, urls
 
 
-def select_model(lang, model_es, model_pt, model_cat):
+def select_model(lang, model_es, model_pt, model_cat=None):
     if lang == "es":
         return model_es
     elif lang == "pt":
@@ -318,13 +318,13 @@ def main():
                    ("ner", "pt"): "monilouise/ner_news_portuguese",
                    ("pos", "pt"): "wietsedv/xlm-roberta-base-ft-udpos28-pt"
                    }
-    if args.historical:  # loading all the models is not efficient in daily calls
-        nlp_ner_es = load_nlp_model("ner", "es", dict_models)
-        nlp_pos_es = load_nlp_model("pos", "es", dict_models)
-        nlp_ner_cat = load_nlp_model("ner", "ca", dict_models)
-        nlp_pos_cat = load_nlp_model("pos", "ca", dict_models)
-        nlp_ner_pt = load_nlp_model("ner", "pt", dict_models)
-        nlp_pos_pt = load_nlp_model("pos", "pt", dict_models)
+    #if args.historical:  # loading all the models is not efficient in daily calls
+    nlp_ner_es = load_nlp_model("ner", "es", dict_models)
+    nlp_pos_es = load_nlp_model("pos", "es", dict_models)
+    #nlp_ner_cat = load_nlp_model("ner", "ca", dict_models)
+    #nlp_pos_cat = load_nlp_model("pos", "ca", dict_models)
+    nlp_ner_pt = load_nlp_model("ner", "pt", dict_models)
+    nlp_pos_pt = load_nlp_model("pos", "pt", dict_models)
 
     # Running
     for col_to_parse in ["maldita", "google"]:
@@ -333,14 +333,14 @@ def main():
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:
-                if args.historical:
-                    ner_model = select_model(
-                        lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-                    pos_model = select_model(
-                        lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-                else:
-                    ner_model = load_nlp_model("ner", lang, dict_models)
-                    pos_model = load_nlp_model("pos", lang, dict_models)
+                #if args.historical:
+                ner_model = select_model(
+                    lang, nlp_ner_es, nlp_ner_pt)
+                pos_model = select_model(
+                    lang, nlp_pos_es, nlp_pos_pt)
+                #else:
+                #    ner_model = load_nlp_model("ner", lang, dict_models)
+                #    pos_model = load_nlp_model("pos", lang, dict_models)
 
                 text, urls_extracted = extract_url(text)
                 # print(urls_extracted)
@@ -374,6 +374,7 @@ def main():
                 if len(keywords) > 6:
                     keywords = keywords[:6]
                 keywords.sort()
+                print(text)
                 print('KEYWORDS:', keywords)
 
                 if len(keywords) == 0:

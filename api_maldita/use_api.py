@@ -54,9 +54,10 @@ def api_call(user, key, api_url, type_query, mycol):
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
         date_yesterday = yesterday.strftime("%Y-%m-%d")
         date_today = datetime.datetime.now().strftime("%Y-%m-%d")
-        params['createdAt[strictly_after]']= date_yesterday
+        params['createdAt[strictly_after]'] = date_yesterday
     else:
-        raise Exception('Need to get a proper type of query: Either historical or daily')
+        raise Exception(
+            'Need to get a proper type of query: Either historical or daily')
 
     while True:
         response = requests.get(

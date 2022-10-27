@@ -17,19 +17,17 @@ config_all = yaml.safe_load(open(config_path))
 if __name__ == "__main__":
 
     mydb = mongo_utils.get_mongo_db()
-    print(mydb)
-    indexes = {'tweets': config_all['mongodb_params']['tweets'],
-               'google': config_all['mongodb_params']['google'],
-               'maldita': config_all['mongodb_params']['maldita'],
-               'mynews': config_all['mongodb_params']['mynews'],
-               'cooccurrence': config_all['mongodb_params']['cooccurrence']}
-    for entry in indexes:
-        print(indexes[entry])
-        col_name = indexes[entry]['name']
-        dict_index = indexes[entry]['index']
+    db_params = config_all['mongodb_params']
+    for key in db_params:
         try:
-            index = [(k, dict_index[k]) for k in dict_index]
-            print(index)
-            mydb[col_name].create_index(index)
+            print(db_params[key])
+            col_name = db_params[key]['name']
+            index = db_params[key]['index']
+            if index is not None:
+                for i in index:
+                    try:
+                        mydb[col_name].create_index(i['key'], i['params'])
+                    except KeyError:
+                        mydb[col_name].create_index(i['key'])
         except TypeError:
             pass

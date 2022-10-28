@@ -78,8 +78,6 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
             rule_params["end_time"] = end_time.strftime("%Y-%m-%d %H:%M")
         else:
             pass
-        print(rule_params)
-        raise
         return rule_params
 
     additional_query = search_params['additional_query']

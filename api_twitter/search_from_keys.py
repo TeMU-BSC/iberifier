@@ -49,7 +49,7 @@ def main():
     col_tweets = config_all['mongodb_params']['tweets']['name']
 
     cols_factcheckers = [col_maldita, col_google]
-    keyword_pairs_key = config_all['keywords_params']['keywords_pair_keys']
+    keyword_pairs_key = config_all['keywords_params']['keywords_pair_key']
 
     max_claims_per_day = config_all['api_twitter_params']['max_claims_per_day']
     twitter_search_params = config_all['api_twitter_params']['search_params']

@@ -1,10 +1,23 @@
+import os
+import yaml
 import logging
 from datetime import datetime, timedelta
+import logging.config
 
 from searchtweets import ResultStream, gen_request_parameters
 from tenacity import after_log, retry, stop_after_attempt, wait_exponential
 
-logger = logging.getLogger(__name__)
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
+config_all = yaml.safe_load(open(config_path))
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 
 @retry(
@@ -62,9 +75,7 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
                     days=search_params["days_after"], hours=23, minutes=59)
 
             rule_params["start_time"] = start_time.strftime("%Y-%m-%d %H:%M")
-            print(rule_params['start_time'])
             rule_params["end_time"] = end_time.strftime("%Y-%m-%d %H:%M")
-            print(rule_params['end_time'])
         else:
             pass
         return rule_params

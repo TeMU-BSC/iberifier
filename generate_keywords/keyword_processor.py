@@ -39,6 +39,13 @@ stream_handler.setLevel(stream_set_level)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+def get_arguments(parser):
+    parser.add_argument("--historical", action='store_true', help="use when there is a lot of data, and not just the daily run")
+    parser.add_argument("--rerun", action='store_true', help="rerun the keywords generation")
+    parser.add_argument("--time_window", default=None, type=int, help="Number of days to compute")
+    parser.add_argument("--co_threshold", default=20, type=int, help="Number of cooccurrencies threshold")
+    parser.add_argument("--max_keywords", default=5, type=int, help="Maximum number of keywords")
+    return parser
 
 def update_fact(
     db,
@@ -78,8 +85,6 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
         raise Exception(
             "Issue with removing words from cooccurrency, probably empty list of keywords"
         )
-
-
 
 
 def create_bigrams(db, col_dict, keywords_list):
@@ -137,27 +142,6 @@ def select_model(lang, model_es, model_pt, model_cat=None):
         return model_cat
     else:
         pass
-
-
-def get_arguments(parser):
-    parser.add_argument(
-        "--historical",
-        action='store_true',
-        help="use when there is a lot of data, and not just the daily run",
-    )
-    parser.add_argument(
-        "--rerun",
-        action='store_true',
-        help="rerun the keywords generation",
-    )
-    parser.add_argument(
-        "--time_window",
-        default=None,
-        type=int,
-        help="Number of days to compute",
-    )
-    return parser
-
 
 def detect_lang(txt):
     lang_dect = detect_language(txt)
@@ -277,21 +261,21 @@ def get_ner(ner_model, text):
         return []
 
 
-def create_and_filter_pairs(db, keywords):
+def create_and_filter_pairs(db, keywords, threshold):
     filtered_pairs = []
     pairs = ((x, y) for x in keywords for y in keywords if y > x)
     for pair in pairs:
         # print(pair)
         # filter pairs that are too co-occurring
         check = [x.lower() for x in pair]
-        # print(check)
-        # TODO: cooccurrence dicionaty has to be bigger and dynamic
-        cursor = db["cooccurrence"].find_one({'words': check})
-        # TODO: these still takes quite too much time, find if we have a better solution -> olivier will index
-        if cursor:
-            # print(cursor['counts'])
-            if cursor['counts'] > 15:
-                continue
+        check.sort()
+        print(check)
+        cursor = db["cooccurrence"].find({'words': check})
+        for item in cursor:
+            if item:
+                print(item['counts'])
+                if item['counts'] > threshold:
+                    continue
         filtered_pairs.append(pair)
         # print(filtered_pairs)
     return filtered_pairs
@@ -346,8 +330,8 @@ def main():
                 # print(urls_extracted)
 
                 keywords = get_ner(ner_model, text)
-                result_pos = get_pos(pos_model, text, "NOUN")
-                keywords += result_pos
+                #result_pos = get_pos(pos_model, text, "NOUN")
+                #keywords += result_pos
                 keywords = remove_nonalpha(keywords)
 
                 # if this does not give enough keywords, try other ways, these ways are ordered strategically
@@ -357,11 +341,11 @@ def main():
                         content_ner = get_ner(ner_model, content)
                         content_ner = remove_nonalpha(content_ner)
                         keywords += content_ner
+
                 if len(keywords) < 3:
-                    content_pos = get_pos(pos_model, content, "NOUN")
+                    content_pos = get_pos(pos_model, text, "NOUN")
                     content_pos = remove_nonalpha(content_pos)
                     keywords += content_pos
-
                 if len(keywords) < 3:
                     adjectives = get_pos(pos_model, text, "ADJ")
                     adjectives = remove_nonalpha(adjectives)
@@ -371,8 +355,9 @@ def main():
                     verbs = remove_nonalpha(verbs)
                     keywords += verbs
 
-                if len(keywords) > 6:
-                    keywords = keywords[:6]
+                keywords = list(set(keywords))
+                if len(keywords) > args.max_keywords:
+                    keywords = keywords[:args.max_keywords]
                 keywords.sort()
                 print(text)
                 print('KEYWORDS:', keywords)
@@ -381,7 +366,7 @@ def main():
                     print('empty example')
                     print(lang)
                 else:
-                    keyword_pairs = create_and_filter_pairs(db, keywords)
+                    keyword_pairs = create_and_filter_pairs(db, keywords, args.threshold)
                     print('KEYWORD PAIRS:', keyword_pairs)
 
                     update_fact(

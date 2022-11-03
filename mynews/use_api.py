@@ -23,11 +23,15 @@ def get_arguments(parser):
     parser.add_argument("--auto_query", action='store_true', help="The queries will be generated automatically from the fact-checks of that time span")
     parser.add_argument("--fromD", default=None, type=str, required=False) #"1654321118"
     parser.add_argument("--toD", default=None, type=str, required=False) #"1656913073"
-    parser.add_argument("--max", default="0", type=str, required=False, help="0 retuurns only the number of outputs to the query")
+    parser.add_argument("--max", default="0", type=str, required=False, help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
     parser.add_argument("--type_query", default="pairs", type=str, required=False,
                         help="Indicates how to build the query. Options are: 'pairs', 'restrictive', 'triples ")
     parser.add_argument("--query", default=None, type=str, required=False, help="the tokens to query, it does not make sense if --auto_query is selected")
     parser.add_argument("--topic", default="13", type=str, required=False, help='the topic of the news, it does not make sense if --auto_query is selected')
+    parser.add_argument("--time_span", default=1, type=int, required=False,
+                        help='Factchecks from the last X days.')
+    parser.add_argument("--time_window", default=7, type=int, required=False,
+                        help='Look for news X days before the fact-check.')
     return parser
 
 def get_token():
@@ -39,9 +43,9 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(query_expression, token, args, media):
+def query(query_expression, token, max_news, media, time_window):
     end = datetime.datetime.today()
-    start = end - datetime.timedelta(days=5)
+    start = end - datetime.timedelta(days=time_window)
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
@@ -56,7 +60,7 @@ def query(query_expression, token, args, media):
         ('query', (None, query_expression)),
         ('fromTime', (None, start_int)),
         ('toTime', (None, end_int)),
-        ('maxResults', (None, args.max)),
+        ('maxResults', (None, max_news)),
         ('relevance', (None, 80)),
         ('extraField', (None, "Ref"))
     ]
@@ -67,7 +71,7 @@ def query(query_expression, token, args, media):
 
     return response.json()
 
-def get_keywords_pairs(args, db):
+def get_keywords_pairs(args, db, time_span):
     dict_keywords = {}
     for collection in ["maldita", "google"]:
         if args.fromD: # TODO: this has to be formated the right way, right now it does not work
@@ -75,7 +79,7 @@ def get_keywords_pairs(args, db):
             start = args.toD
         else:
             end = datetime.datetime.today()
-            start = end - datetime.timedelta(days=3)
+            start = end - datetime.timedelta(days=time_span)
         search = {"date":{'$gt': start, '$lt': end}}
         cursor = db[collection].find(search)
         for fact in cursor:
@@ -84,7 +88,7 @@ def get_keywords_pairs(args, db):
             dict_keywords[(fact['_id'], collection)] = fact['keyword_pairs']
     return dict_keywords
 
-def get_keywords(args, db, type='keyword_pairs'):
+def get_keywords(args, db, time_span, type='keyword_pairs'):
     dict_keywords = {}
     for collection in ["maldita", "google"]:
         if args.fromD: # TODO: this has to be formated the right way, right now it does not work
@@ -92,7 +96,7 @@ def get_keywords(args, db, type='keyword_pairs'):
             start = args.toD
         else:
             end = datetime.datetime.today()
-            start = end - datetime.timedelta(days=3)
+            start = end - datetime.timedelta(days=time_span)
         search = {"date":{'$gt': start, '$lt': end}}
         cursor = db[collection].find(search)
         for fact in cursor:
@@ -144,9 +148,16 @@ def main():
 
     # look for the fact-checks of a certain time span and extract the tokens
     if args.type_query in ['pairs', 'restrictive']:
-        keywords = get_keywords(args, db, type='keyword_pairs')
+        keywords = get_keywords(args, db, args.time_span, type='keyword_pairs')
     else:
-        keywords = get_keywords(args, db, type='keywords')
+        keywords = get_keywords(args, db, args.time_span, type='keywords')
+
+    # limit news per
+    print('Looking for news about {} factchecks'.format(len(keywords)))
+    if args.max == 'auto':
+        max = 100/len(keywords)
+    else:
+        max = int(args.max)
 
     # load media list
     with open('mynews/matching_list.csv') as f:
@@ -163,23 +174,26 @@ def main():
     for ids, keys in keywords.items():
         query_expression = write_query(keys, type=args.type_query)
         print(query_expression)
-        result = query(query_expression, token, args, media)
+        result = query(query_expression, token, max, media, args.time_window)
         print(result)
 
         if result == {'detail': 'Too many requests, wait 1h'}:
             print('Rate limit, wait 1 hour.')
             time.sleep(3660)
         elif len(result['news']) != 0:
+            total = result['total']
             news = result['news']
             print('Results found:',len(news))
             n_results += len(news)
             for n in news:
                 n['related_to'] = ids[0]
                 n['related_to_source'] = ids[1]
+                n['date'] = datetime.datetime.strptime(n['Date'], '%d/%m/%Y')
+                n['query_output'] = total
             mynews.insert_many(news)
 
-    if n_results < 100:
-        print('rerun')
+    #if n_results < 100:
+    #    print('rerun')
 
 
 if __name__ == "__main__":

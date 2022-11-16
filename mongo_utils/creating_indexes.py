@@ -1,5 +1,7 @@
 import logging
+import logging.config
 import os
+from pymongo import IndexModel, ASCENDING, DESCENDING, TEXT
 
 import yaml
 
@@ -8,28 +10,47 @@ import mongo_utils
 logger = logging.getLogger(__name__)
 
 # Load config and credentials
-
 config_path = os.path.join(os.path.dirname(
     __file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 
 if __name__ == "__main__":
 
     mydb = mongo_utils.get_mongo_db()
-    print(mydb)
-    indexes = {'tweets': config_all['mongodb_params']['tweets'],
-               'google': config_all['mongodb_params']['google'],
-               'maldita': config_all['mongodb_params']['maldita'],
-               'mynews': config_all['mongodb_params']['mynews'],
-               'cooccurrence': config_all['mongodb_params']['cooccurrence']}
-    for entry in indexes:
-        print(indexes[entry])
-        col_name = indexes[entry]['name']
-        dict_index = indexes[entry]['index']
+    db_params = config_all['mongodb_params']
+    for key in db_params:
         try:
-            index = [(k, dict_index[k]) for k in dict_index]
-            print(index)
-            mydb[col_name].create_index(index)
+            col_name = db_params[key]['name']
         except TypeError:
-            pass
+            col_name = None
+        if col_name:
+            index = db_params[key]['index']
+            if index is not None:
+                logger.info(f"Doing the index for {col_name}")
+                for i in index:
+                    logger.debug(f"FROM INDEX: {i}")
+                    try:
+                        # print(i['key'])
+                        for k in i['key']:
+                            if i['key'][k] == 1:
+                                i['key'][k] = ASCENDING
+                            elif i['key'][k] == -1:
+                                i['key'][k] = DESCENDING
+                            elif i['key'][k] == 'text':
+                                i['key'][k] = TEXT
+
+                        mydb[col_name].create_index(i['key'].items(), **i['params'])
+                        logger.info(
+                            f"Done index on {i['key']} with params {i['params']}")
+                    except KeyError:
+                        logger.info(f"Done index on {i['key']} without params")
+                        mydb[col_name].create_index(i['key'].items())

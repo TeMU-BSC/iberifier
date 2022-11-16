@@ -94,44 +94,6 @@ def clean_word(word):
     return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
 
-def entity_extraction(nlp, text):
-    return_entity = dict()
-    for ent in nlp(text):
-        return_entity.setdefault(ent["entity_group"], set()).add(
-            clean_word(ent["word"])
-        )
-    for result in return_entity:
-        return_entity[result] = list(return_entity[result])
-    return return_entity
-
-
-def remove_compiled_regex(txt: str, compiled_regex: re.compile, substitute: str = ""):
-    """
-    Search for the compiled regex in the txt and either replace it with the substitute or remove it
-    """
-    entities = compiled_regex.findall(txt)
-    txt = compiled_regex.sub(substitute, txt)
-    return txt, entities
-
-
-def extract_url(txt):
-    url_re = re.compile(
-        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
-    txt, urls = remove_compiled_regex(txt=txt, compiled_regex=url_re)
-    return txt, urls
-
-
-def select_model(lang, model_es, model_pt, model_cat):
-    if lang == "es":
-        return model_es
-    elif lang == "pt":
-        return model_pt
-    elif lang == "ca":
-        return model_cat
-    else:
-        pass
-
-
 def get_arguments(parser):
     parser.add_argument(
         "--historical",
@@ -150,68 +112,6 @@ def get_arguments(parser):
         help="Number of days to compute",
     )
     return parser
-
-
-def detect_lang(txt):
-    lang_dect = detect_language(txt)
-    return lang_dect["pref_lang"]
-
-
-def parsing_new_fact_maldita(db, collection, search):
-    cursor = db[collection].find(search)
-    for record in cursor:
-        # print(record)
-        fact_id = record["_id"]
-        text = record["text"]
-        try:
-            content = BeautifulSoup(record["content"], "lxml").text
-        except TypeError:  # Maybe empty
-            content = None
-
-        print(text)
-        yield fact_id, text, content, None
-    cursor.close()
-
-
-def parsing_new_fact_google(db, collection, search):
-    cursor = db[collection].find(search, batch_size=1)
-    for record in cursor:
-        fact_id = record["_id"]
-        text = record["text"]
-        content = record["claimReview"][0]["title"]
-        lang = record["claimReview"][0]["languageCode"]
-        yield fact_id, text, content, lang
-    cursor.close()
-
-
-def text_from_facts(db, collection, args):
-    search = {}
-    if not args.rerun:
-        search["keyword_pairs"] = {"$exists": False}
-    if args.time_window:
-        today = datetime.today()
-        days_ago = today - timedelta(days=args.time_window)
-        search["date"] = {'$gt': days_ago, '$lt': today}
-    if collection == "maldita":
-        logger.info('Searching in maldita for:', search)
-        return parsing_new_fact_maldita(db, collection, search)
-    elif collection == "google":
-        logger.info('Searching in google for:', search)
-        return parsing_new_fact_google(db, collection, search)
-    else:
-        raise Exception("Not the right collection")
-
-
-def load_nlp_model(task, lang, models):
-    logger.info("Load {} {} model: {}".format(
-        lang, task, models[task][lang]))
-    nlp_model = pipeline(
-        ("token-classification" if task == "pos" else task),
-        model=models[task][lang],
-        tokenizer=models[task][lang],
-        aggregation_strategy="max",
-    )
-    return nlp_model
 
 
 def remove_nonalpha(strings):
@@ -249,15 +149,12 @@ def create_keyword_list(ner_ent=None, pos_ent=None):
     return []
 
 
-
-
 def create_and_filter_pairs(db, keywords):
     filtered_pairs = []
     pairs = ((x, y) for x in keywords for y in keywords if y > x)
     for pair in pairs:
         # filter pairs that are too co-occurring
         check = [x.lower() for x in pair]
-        # print(check)
         # TODO: cooccurrence dictionaty has to be bigger and dynamic
         cursor = db["cooccurrence"].find_one({'words': check})
         # TODO: these still takes quite too much time, find if we have a better solution -> olivier will index
@@ -273,7 +170,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
-    print(args)
 
     # DB Connection
     logger.info("Connecting to the db")
@@ -283,13 +179,6 @@ def main():
 
     # Load models
     dict_models = config_all['keywords_params']['language_models']
-    if args.historical:  # loading all the models is not efficient in daily calls
-        nlp_ner_es = load_nlp_model("ner", "es", dict_models)
-        nlp_pos_es = load_nlp_model("pos", "es", dict_models)
-        nlp_ner_cat = load_nlp_model("ner", "ca", dict_models)
-        nlp_pos_cat = load_nlp_model("pos", "ca", dict_models)
-        nlp_ner_pt = load_nlp_model("ner", "pt", dict_models)
-        nlp_pos_pt = load_nlp_model("pos", "pt", dict_models)
 
     # Running
     for col_to_parse in ["maldita", "google"]:
@@ -298,14 +187,10 @@ def main():
             if lang is None:
                 lang = detect_lang(text)
             if lang in ["es", "ca", "pt"]:
-                if args.historical:
-                    ner_model = select_model(
-                        lang, nlp_ner_es, nlp_ner_pt, nlp_ner_cat)
-                    pos_model = select_model(
-                        lang, nlp_pos_es, nlp_pos_pt, nlp_pos_cat)
-                else:
-                    ner_model = load_nlp_model("ner", lang, dict_models)
-                    pos_model = load_nlp_model("pos", lang, dict_models)
+                ner_model = select_model(
+                    lang, nlp_ner_es, nlp_ner_pt)
+                pos_model = select_model(
+                    lang, nlp_pos_es, nlp_pos_pt)
 
                 text, urls_extracted = extract_url(text)
 
@@ -342,6 +227,7 @@ def main():
                 if len(keywords) > 6:
                     keywords = keywords[:6]
                 keywords.sort()
+                print(text)
                 print('KEYWORDS:', keywords)
 
                 if len(keywords) == 0:

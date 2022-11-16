@@ -5,6 +5,7 @@ import yaml
 import datetime
 import logging
 import logging.config
+import pymongo
 import time
 
 import sys
@@ -54,9 +55,10 @@ def api_call(user, key, api_url, type_query, mycol):
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
         date_yesterday = yesterday.strftime("%Y-%m-%d")
         date_today = datetime.datetime.now().strftime("%Y-%m-%d")
-        params['createdAt[strictly_after]']= date_yesterday
+        params['createdAt[strictly_after]'] = date_yesterday
     else:
-        raise Exception('Need to get a proper type of query: Either historical or daily')
+        raise Exception(
+            'Need to get a proper type of query: Either historical or daily')
 
     while True:
         response = requests.get(
@@ -68,7 +70,12 @@ def api_call(user, key, api_url, type_query, mycol):
         for element in data:
             element['date'] = datetime.datetime.strptime(
                 element['createdAt'], '%Y-%m-%dT%H:%M:%S%z')
-        mycol.insert_many(data)
+        try:
+            mycol.insert_many(data, ordered=False)
+            from pymongo.errors import BulkWriteError
+
+        except pymongo.errors.BulkWriteError:
+            pass
         time.sleep(1)
     logging.debug('10th posts')
     for post in mycol.find().limit(10):

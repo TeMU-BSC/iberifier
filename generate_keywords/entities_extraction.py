@@ -8,6 +8,7 @@ import re
 import string
 import sys
 from datetime import datetime, timedelta
+import logging.config
 
 from bs4 import BeautifulSoup
 # from collections import OrderedDict
@@ -15,7 +16,6 @@ from language_detector import detect_language
 from transformers import pipeline
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 
 config_path = os.path.join(os.path.dirname(
     __file__), '../config', 'config.yaml')
@@ -33,24 +33,6 @@ logger = logging.getLogger(config_all['logging']['level'])
 def detect_lang(txt):
     lang_dect = detect_language(txt)
     return lang_dect["pref_lang"]
-
-
-def text_from_facts(db, collection, args):
-    search = {}
-    if not args.rerun:
-        search["keyword_pairs"] = {"$exists": False}
-    if args.time_window:
-        today = datetime.today()
-        days_ago = today - timedelta(days=args.time_window)
-        search["date"] = {'$gt': days_ago, '$lt': today}
-    if collection == "maldita":
-        logger.info('Searching in maldita for:', search)
-        return parsing_new_fact_maldita(db, collection, search)
-    elif collection == "google":
-        logger.info('Searching in google for:', search)
-        return parsing_new_fact_google(db, collection, search)
-    else:
-        raise Exception("Not the right collection")
 
 
 def remove_nonalpha(strings):
@@ -86,7 +68,6 @@ def extract_url(txt):
         "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
     txt, urls = remove_compiled_regex(txt=txt, compiled_regex=url_re)
     return txt, urls
-
 
 
 def text_from_facts(db, collection, args):
@@ -133,49 +114,45 @@ def load_all_mdels(dict_models):
     return dict_model_loaded
 
 
+def parsing_new_fact_google(record):
+    fact_id = record["_id"]
+    claim = record["text"]
+    check = record["claimReview"][0]["title"]
+    lang = record["claimReview"][0]["languageCode"]
+    return fact_id, claim, check, lang
+
+
+def parsing_new_fact_maldita(record):
+    fact_id = record["_id"]
+    text = record["text"]
+    try:
+        content = BeautifulSoup(record["content"], "lxml").text
+    except TypeError:  # Maybe empty
+        content = None
+    yield fact_id, text, content, None
+
+
 def get_list_to_update(db, collections, ner_key, pos_key, rerun, time_window):
     search = {}
 
-    if rerun:
+    if rerun is False:
         search[ner_key] = {"$exists": False}
+    logger.debug(search)
 
     for col in collections:
+        if col == 'maldita':
+            # Only take the type of falso which has the claim and the check 
+            # The other type are explainers
+            search['organizationCalification.calification.name'] = 'Falso'
 
         cursor = db[col].find(search, batch_size=1)
         for record in cursor:
-            fact_id = record["_id"]
-            text = record["text"]
-            content = record["claimReview"][0]["title"]
-            lang = record["claimReview"][0]["languageCode"]
+            if col == 'google':
+                fact_id, claim, check, lang = parsing_new_fact_google(record)
+            if col == 'maldita':
+                fact_id, claim, check, lang = parsing_new_fact_google(record)
             yield fact_id, text, content, lang
         cursor.close()
-
-
-def parsing_new_fact_google(db, collection, search):
-    cursor = db[collection].find(search, batch_size=1)
-    for record in cursor:
-        fact_id = record["_id"]
-        claim = record["text"]
-        check = record["claimReview"][0]["title"]
-        lang = record["claimReview"][0]["languageCode"]
-        yield fact_id, claim, check, lang
-    cursor.close()
-
-
-def parsing_new_fact_maldita(db, collection, search):
-    cursor = db[collection].find(search)
-    for record in cursor:
-        # print(record)
-        fact_id = record["_id"]
-        text = record["text"]
-        try:
-            content = BeautifulSoup(record["content"], "lxml").text
-        except TypeError:  # Maybe empty
-            content = None
-
-        print(text)
-        yield fact_id, text, content, None
-    cursor.close()
 
 
 def main():
@@ -186,7 +163,7 @@ def main():
     logger.info("Connected to: {}".format(db))
 
     dict_models = config_all['ent_extraction_params']['language_models']
-    rerun = config_all['ent_extraction_params']['rerum']
+    rerun = config_all['ent_extraction_params']['rerun']
     ner_key = config_all['ent_extraction_params']['ner_key']
     pos_key = config_all['ent_extraction_params']['pos_key']
     time_window = config_all['ent_extraction_params']['time_window']
@@ -196,12 +173,15 @@ def main():
     list_fact_to_update = get_list_to_update(db, collections,
                                              ner_key, pos_key, rerun, time_window)
     for claim in list_fact_to_update:
-        if claim['lang'] is None:
-            lang = detect_lang(claim['text'])
-        else:
-            lang = claim['lang']
-        if lang in ['es', 'ca', 'pt']:
-            ner_model = select_model('ner', lang, dict_loaded_models)
-            ner_model = select_model('pos', lang, dict_loaded_models)
+        logger.debug(claim)
+        # if claim['lang'] is None:
+        #     lang = detect_lang(claim['text'])
+        # else:
+        #     lang = claim['lang']
+        # if lang in ['es', 'ca', 'pt']:
+        #     ner_model = select_model('ner', lang, dict_loaded_models)
+        #     ner_model = select_model('pos', lang, dict_loaded_models)
 
-            # text, urls_extracted = extract_url(text)
+        #     text, urls_extracted = extract_url(text)
+if __name__ == "__main__":
+    main()

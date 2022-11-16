@@ -10,22 +10,22 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
 
-
 logger = logging.getLogger(__name__)
 
 # Load config and credentials
 
-config_path = os.path.join(os.path.dirname(__file__), '../config', 'config.yaml')
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
 
 
-# mongo_cred_path = os.path.join(
-#     os.path.dirname(__file__),
-#     "../config",
-#     config_all["mongodb_params"]["mongodb_cred_filename"],
-# )
-# mongodb_credentials = yaml.safe_load(open(mongo_cred_path))[
-#     "mongodb_credentials"]
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 twitter_cred_path = os.path.join(
     os.path.dirname(__file__),
@@ -49,7 +49,7 @@ def main():
     col_tweets = config_all['mongodb_params']['tweets']['name']
 
     cols_factcheckers = [col_maldita, col_google]
-    keyword_pairs_key = config_all['keywords_params']['keywords_pair_keys']
+    keyword_pairs_key = config_all['keywords_params']['keywords_pair_key']
 
     max_claims_per_day = config_all['api_twitter_params']['max_claims_per_day']
     twitter_search_params = config_all['api_twitter_params']['search_params']
@@ -61,6 +61,7 @@ def main():
 
     # get only the documents who were not searched for
     for col in cols_factcheckers:
+        logger.info(f"Parsing the fact-checker {col}")
         itercol = mydb[col].find(
             {"searched_on": {"$exists": False},
              keyword_pairs_key: {"$ne": None}}
@@ -68,7 +69,6 @@ def main():
 
         for doc in itercol:
             news_id = doc["_id"]
-            print(news_id)
             post_date_str = doc["createdAt"]
             post_date = datetime.strptime(post_date_str, "%Y-%m-%dT%H:%M:%S%z")
             twitter_search_params['date'] = post_date

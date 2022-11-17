@@ -6,6 +6,7 @@ import argparse
 import time
 import os
 import yaml
+from pymongo.errors import BulkWriteError
 import datetime
 
 
@@ -44,13 +45,13 @@ def get_arguments(parser):
     return parser
 
 
-def insert_data(data, mycol):
-    """
-    """
-    for element in data:
-        element['date'] = datetime.datetime.strptime(
-            element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
-    mycol.insert_many(data)
+# def insert_data(data, mycol):
+#     """
+#     """
+#     for element in data:
+#         element['date'] = datetime.datetime.strptime(
+#             element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
+#     mycol.insert_many(data)
 
 
 def api_call(credentials, mycol, list_media, type_query, maxAgeDays=1):
@@ -69,10 +70,17 @@ def api_call(credentials, mycol, list_media, type_query, maxAgeDays=1):
                 data = response["claims"]
                 logger.info('Number of claims: {}'.format(len(data)))
                 for element in data:
-                    element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
-                                                                 '%Y-%m-%dT%H:%M:%S%z')
-                mycol.insert_many(data)
-                time.sleep(5)
+                    # Getting a list with one element, easier to remove the list 
+                    element['claimReview'] = element['claimReview'][0]
+                    element['date'] = datetime.datetime.strptime(element['claimReview']['reviewDate'],
+                                                                     '%Y-%m-%dT%H:%M:%S%z')
+                    print(element)
+                try:
+                    mycol.insert_many(data, ordered=False)
+
+                except BulkWriteError:
+                    pass
+                    time.sleep(5)
             request = query.search_next(request, response)
 
 

@@ -32,11 +32,11 @@ def co_occurrence(sentences, window_size):
 
 
 def main():
-    # todo: use a corpus with also Catalan and Portuguese -> waiting for portuguese OSCAR
     text_file = open(
-        "/home/blanca/Escriptori/projects/dt01/gpfs/scratch/bsc88/bsc88080/iberifier_corpora/large_trilingual.txt",
+        #"/home/blanca/Escriptori/projects/dt01/gpfs/projects/bsc88/corpora/iberifier_corpora/large_trilingual.txt",
+        "/gpfs/projects/bsc88/corpora/iberifier_corpora/large_trilingual.txt",
         "r",
-    )  # 4000000 oscar_es + 4000000 oscar_ca + 4000000 oscar_pt
+    )  # 40000000 oscar_es + 40000000 oscar_ca + 40000000 oscar_pt
     lines = text_file.readlines()
     text_file.close()
 
@@ -51,8 +51,8 @@ def main():
     print(len(list_counts))
 
     # to json
-    with open("cooccurrence_dict.jsonl", "w") as f:
-        f.write(json.dumps(list_counts) + "\n")
+    with open("cooccurrence_dict.json", "w") as f:
+        f.write(json.dumps(list_counts))
 
     # to mongo
     # collection = open_collection()

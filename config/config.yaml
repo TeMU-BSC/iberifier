@@ -33,11 +33,24 @@ api_google_params:
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
   search_on_key: search_on
   maxAgeDays: 3
+  fields:
+    claim: text
+    review: claimReview.title
+    lang: claimReview.languageCode
+    url: claimReview.url
+    reviewer: claimReview.publisher.name
+    date: date
 
 
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
   root_url: https://repositorio.iberifier.eu/api/contents
+  fields:
+    claim: content
+    review: text
+    url: link
+    reviewer: organization.name
+    date: date
 
 
 api_mynews_params:
@@ -51,7 +64,8 @@ ent_extraction_params:
   rerun: true
   language_models:
     ner:
-      es: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+
+      es: ./models/roberta-base-bne-capitel-ner-plus
       ca: projecte-aina/roberta-base-ca-cased-ner
       pt: monilouise/ner_news_portuguese
     pos:
@@ -83,9 +97,11 @@ mongodb_params:
       - key: {id: 1} 
         params: {unique: true}
       - key: {*search_twitter: 1}
+      - key: {fact_id: 1}
   keywords:
     name: keywords
-    index: null
+    index: 
+      - key: {fact_id: 1}
 
   mynews: 
     name: mynews
@@ -95,7 +111,6 @@ mongodb_params:
     index: 
     - key: {count: 1}
     - key: {words: 1}
-    
 
 pipeline_params:
 

@@ -1,7 +1,12 @@
+import sys
+import yaml
 import csv
 
+import logging
 import requests
 import os
+
+import logging.config
 import importlib.util
 import argparse
 import datetime
@@ -14,10 +19,21 @@ credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 mynews_credentials = credentials.mynews_credentials
 
-import sys
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
+config_all = yaml.safe_load(open(config_path))
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
+
 
 def get_arguments(parser):
     #parser.add_argument("--auto_query", action='store_true', help="The queries will be generated automatically from the fact-checks of that time span")
@@ -33,6 +49,7 @@ def get_arguments(parser):
     parser.add_argument("--time_window", default=7, type=int, required=False,
                         help='Look for news X days before the fact-check.')
     return parser
+
 
 def get_token():
     public_key, password = mynews_credentials()
@@ -51,6 +68,7 @@ def query(query_expression, token, max_news, media, time_window, claim_date):
     start = claim_date - datetime.timedelta(days=time_window)
     print(start, end)
     # TODO: there is an issue with the format of the date in the API
+
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
@@ -72,29 +90,13 @@ def query(query_expression, token, max_news, media, time_window, claim_date):
 
     extended = files + publications
 
-    response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
+    response = requests.post(
+        'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
 
     return response.json()
 
-# def get_keywords_pairs(args, db):
-#     dict_keywords = {}
-#     for collection in ["maldita", "google"]:
-#         # if args.fromD:
-#         #     end = args.fromD
-#         #     start = args.toD
-#         # else:
-#         #     end = datetime.datetime.today()
-#         #     start = end - datetime.timedelta(days=time_span)
-#         limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
-#         search = {"date": {'$lt': limit_day}, "search_mynews_key": {'$exists': False}}
-#         cursor = db[collection].find(search)
-#         for fact in cursor:
-#             print(fact['text'])
-#             #print(fact['keyword_pairs'])
-#             dict_keywords[(fact['_id'], collection)] = fact['keyword_pairs']
-#     return dict_keywords
 
-def get_keywords(args, db, type='keywords_pairs'):
+def get_keywords(args, db, type_keywords='keywords_pairs'):
     dict_keywords = {}
     #for collection in ["maldita", "google"]:
     collection = 'keywords'
@@ -111,7 +113,7 @@ def get_keywords(args, db, type='keywords_pairs'):
     for fact in cursor:
         #print(fact['text'])
         #print(fact['keyword_pairs'])
-        dict_keywords[(fact['_id'], collection)] = [fact[type], fact['date']]
+        dict_keywords[(fact['_id'], collection)] = [fact[type_keywords], fact['date']]
     return dict_keywords
 
 
@@ -123,23 +125,24 @@ def time_to_int(dateobj):
     total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
     return total
 
-def write_query(keys_all, type='pairs'):
+def write_query(keys_all, type_query='pairs'):
     keys=keys_all[0][:4] # I limit the keywords to 4
     claim_date = keys_all[1]
     query = ''
     previous_pair = None
     for k in keys:
         string = ''
-        if type == "pairs":
+        if type_query == "pairs":
             string = '(' + k[0] + ' AND ' + k[1] + ') OR '
-        elif type == "restrictive":
+        elif type_query == "restrictive":
             if not previous_pair:
                 string = '(' + k[0] + ' AND ' + k[1] + ') OR '
             else:
-                string = '(' + k[0] + ' AND ' + k[1] + ') AND ('+ previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
+                string = '(' + k[0] + ' AND ' + k[1] + ') AND (' + \
+                    previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
             previous_pair = k
         query += string
-    if type == "triples":
+    if type_query == "triples":
         comb = combinations(keys, 3)
         for c in comb:
             string = '(' + c[0] + ' AND ' + c[1] + ' AND ' + c[2] + ') OR '
@@ -147,6 +150,7 @@ def write_query(keys_all, type='pairs'):
 
     query = query[:-4]
     return query, claim_date
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -158,10 +162,9 @@ def main():
 
     # look for the fact-checks of a certain time span and extract the tokens
     if args.type_query in ['pairs', 'restrictive']:
-        keywords = get_keywords(args, db, type='keywords_pairs')
+        keywords = get_keywords(args, db, type_keywords='keywords_pairs')
     else:
-        keywords = get_keywords(args, db, type='keywords')
-    #print(keywords)
+        keywords = get_keywords(args, db, type_keywords='keywords')
 
     # limit news per
     print('Looking for news about {} factchecks'.format(len(keywords)))
@@ -171,7 +174,8 @@ def main():
         max = int(args.max)
 
     # load media list
-    with open('mynews/matching_list.csv') as f:
+
+    with open('mynews/matching_list.csv', 'r') as f:
         reader = csv.reader(f)
         media = []
         for line in reader:
@@ -183,7 +187,7 @@ def main():
 
     n_results = 0
     for ids, keys in keywords.items():
-        query_expression, claim_date = write_query(keys, type=args.type_query)
+        query_expression, claim_date = write_query(keys, type_query=args.type_query)
         print(query_expression)
         result = query(query_expression, token, max, media, args.time_window, claim_date)
         print(result)
@@ -194,7 +198,7 @@ def main():
         elif len(result['news']) != 0:
             total = result['total']
             news = result['news']
-            print('Results found:',len(news))
+            print('Results found:', len(news))
             n_results += len(news)
             for n in news:
                 n['related_to'] = ids[0]
@@ -203,7 +207,7 @@ def main():
                 n['query_output'] = total
             mynews.insert_many(news)
 
-    #if n_results < 100:
+    # if n_results < 100:
     #    print('rerun')
 
 

@@ -37,7 +37,7 @@ logger = logging.getLogger(config_all['logging']['level'])
 def get_arguments(parser):
     parser.add_argument(
         "--query",
-        default="historical",
+        default=None,
         type=str,
         required=False,
         help="'historical' gets all the data in the API, 'daily' gets the fact-checks from today",

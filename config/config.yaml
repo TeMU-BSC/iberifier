@@ -31,7 +31,7 @@ api_twitter_params:
 api_google_params:
   cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
-  search_on_key: *search_on
+  search_on_key: *search_twitter
   type_query: daily
   max_age_days: 3
   fields:
@@ -46,7 +46,7 @@ api_google_params:
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
   root_url: https://repositorio.iberifier.eu/api/contents
-  search_on_key: *search_on
+  search_on_key: *search_twitter
   type_query: daily
   max_age_days: 3
   fields:
@@ -82,7 +82,9 @@ keywords_params:
   pos_key: *en_pos_key
   keywords_key: keywords
   keywords_pair_key: keywords_pairs
-  coocurency_threshold: 15
+  rerun: false
+  co_threshold: 15
+  max_words: 5
 
 mongodb_params:
   

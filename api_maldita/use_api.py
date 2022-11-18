@@ -103,6 +103,7 @@ def main():
     api_key = maldita_credentials['MALDITA_API_KEY']
     api_params = config_all['api_maldita_params']
     api_url = api_params['root_url']
+    print(api_url)
     api_type_query = api_params['type_query']
     api_max_days = api_params['max_age_days']
     collection = open_collection(col_maldita)
@@ -116,7 +117,7 @@ def main():
     else:
         max_days = api_max_days
 
-    api_call(api_user, api_key, api_url, collection, type_query=type_query, max_days=max_days)
+    api_call(api_user, api_key, collection, api_url, type_query=type_query, max_days=max_days)
 
 
 if __name__ == "__main__":

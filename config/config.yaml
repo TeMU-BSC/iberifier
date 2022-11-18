@@ -31,8 +31,8 @@ api_twitter_params:
 api_google_params:
   cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
-  search_on_key: search_on
-  maxAgeDays: 3
+  search_on_key: *search_on
+  max_age_days: 3
   fields:
     claim: text
     review: claimReview.title
@@ -45,6 +45,9 @@ api_google_params:
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
   root_url: https://repositorio.iberifier.eu/api/contents
+  search_on_key: *search_on
+  type_query: daily
+  max_age_days: 3
   fields:
     claim: content
     review: text

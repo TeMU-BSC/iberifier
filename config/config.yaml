@@ -1,6 +1,6 @@
 api_twitter_params:
 
-  search_on_key: &search_twitter search_on
+  search_twitter_key: &search_twitter_key search_twitter_key
   cred_filename: api_twitter_credentials.yaml
   max_claims_per_day: 100
   search_params:
@@ -11,7 +11,7 @@ api_twitter_params:
     date: null
     # date: '28-09-2022'
     days_before: 1
-    days_after: 0
+    days_after: 5
     output_format: a
 
   rule_params:
@@ -31,7 +31,6 @@ api_twitter_params:
 api_google_params:
   cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
-  search_on_key: *search_twitter
   type_query: daily
   max_age_days: 3
   fields:
@@ -46,7 +45,6 @@ api_google_params:
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
   root_url: https://repositorio.iberifier.eu/api/contents
-  search_on_key: *search_twitter
   type_query: daily
   max_age_days: 3
   fields:
@@ -102,7 +100,7 @@ mongodb_params:
     index:
       - key: {id: 1} 
         params: {unique: true}
-      - key: {*search_twitter: 1}
+      - key: {*search_twitter_key: 1}
       - key: {fact_id: 1}
   keywords:
     name: keywords

@@ -1,13 +1,14 @@
-from mongo_utils import mongo_utils
 import logging
 import os
 import sys
-from datetime import datetime
+import tqdm
+from datetime import datetime, timedelta
 
 import yaml
 
 from api_twitter import search_twitter
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from mongo_utils import mongo_utils
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,42 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 
 def insert_tweets_mongo(tweet, fact_id, collection):
 
-    collection.update_one({"tweet_id": tweet["id"]}, {"$set": {'tweet': tweet, 'fact_id': fact_id}}, upsert=True)
+    collection.update_one({"tweet_id": tweet["id"]}, {
+                          "$set": {'tweet': tweet, 'fact_id': fact_id}}, upsert=True)
+
+
+def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
+    limit_day = datetime.today() - timedelta(days=days_after)
+    aggregate_query = [
+        {
+            "$match": {
+                "$and": [{
+                    search_twitter_key: {'$exists': False}},
+                    {'date': {'$lt': limit_day}}
+                ]
+            },
+
+        },
+        {
+            "$project": {
+                "_id": 1
+            }
+        }
+    ]
+    return [i['_id'] for i in db[col_keywords].aggregate(aggregate_query)]
+
+
+def get_documents(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
+
+    list_ids = get_lists_ids(db, col_keywords, keywords_key=keywords_key, search_twitter_key=search_twitter_key,
+                             max_claims_per_day=max_claims_per_day, days_before=days_before, days_after=days_after)
+
+    tqdm_length = len(list_ids)
+    cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)
+
+    for record in tqdm.tqdm(cursor, total=tqdm_length):
+        yield record
+    cursor.close()
 
 
 def main():
@@ -50,21 +86,23 @@ def main():
     keyword_pairs_key = config_all['keywords_params']['keywords_pair_key']
 
     max_claims_per_day = config_all['api_twitter_params']['max_claims_per_day']
+    search_twitter_key = config_all['api_twitter_params']['search_twitter_key']
     twitter_search_params = config_all['api_twitter_params']['search_params']
     twitter_rule_params = config_all['api_twitter_params']['rule_params']
     twitter_additional_query = twitter_search_params['additional_query']
     twitter_additional_query = ' '.join(twitter_additional_query)
+    days_before = twitter_search_params['days_before']
+    days_after = twitter_search_params['days_after']
 
     sources_to_update = []
 
     # get only the documents who were not searched for
-    logger.info(f"Parsing the different claims")
-    itercol = mydb[col_keywords].find(
-        {"searched_on": {"$exists": False},
-         keyword_pairs_key: {"$ne": None}}
-    ).limit(max_claims_per_day)
-
-    for doc in itercol:
+    logger.info("Parsing the different claims")
+    for doc in get_documents(mydb, col_keywords,
+                             keywords_key=keyword_pairs_key,
+                             search_twitter_key=search_twitter_key,
+                             max_claims_per_day=max_claims_per_day,
+                             days_before=days_before, days_after=days_after):
         fact_id = doc["fact_id"]
         post_date_str = doc['date']
         # post_date = datetime.strptime(post_date_str, "%Y-%m-%dT%H:%M:%S%z")
@@ -103,7 +141,7 @@ def main():
 
     mydb[col_keywords].update_many(
         {"fact_id": {"$in": sources_to_update}}, {
-            "$set": {"searched_on": datetime.now()}}
+            "$set": {search_twitter_key: datetime.now()}}
     )
 
 

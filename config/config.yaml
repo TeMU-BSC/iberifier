@@ -1,6 +1,6 @@
 api_twitter_params:
 
-  search_on_key: &search_twitter search_on
+  search_twitter_key: &search_twitter_key search_twitter_key
   cred_filename: api_twitter_credentials.yaml
   max_claims_per_day: 100
   search_params:
@@ -11,7 +11,7 @@ api_twitter_params:
     date: null
     # date: '28-09-2022'
     days_before: 1
-    days_after: 0
+    days_after: 5
     output_format: a
 
   rule_params:
@@ -31,13 +31,28 @@ api_twitter_params:
 api_google_params:
   cred_filename: api_google_credentials.yaml
   list_media: ['antena3.com', 'europapress.es', 'newtral.es']
-  search_on_key: search_on
-  maxAgeDays: 3
+  type_query: daily
+  max_age_days: 3
+  fields:
+    claim: text
+    review: claimReview.title
+    lang: claimReview.languageCode
+    url: claimReview.url
+    reviewer: claimReview.publisher.name
+    date: date
 
 
 api_maldita_params:
   cred_filename: api_maldita_credentials.yaml
   root_url: https://repositorio.iberifier.eu/api/contents
+  type_query: daily
+  max_age_days: 3
+  fields:
+    claim: content
+    review: text
+    url: link
+    reviewer: organization.name
+    date: date
 
 
 api_mynews_params:
@@ -51,7 +66,8 @@ ent_extraction_params:
   rerun: true
   language_models:
     ner:
-      es: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
+
+      es: ./models/roberta-base-bne-capitel-ner-plus
       ca: projecte-aina/roberta-base-ca-cased-ner
       pt: monilouise/ner_news_portuguese
     pos:
@@ -63,8 +79,10 @@ keywords_params:
   ner_key: *en_ner_key
   pos_key: *en_pos_key
   keywords_key: keywords
-  keywords_pair_key: keyword_pairs
-  coocurency_threshold: 15
+  keywords_pair_key: keywords_pairs
+  rerun: false
+  co_threshold: 15
+  max_words: 5
 
 mongodb_params:
   
@@ -74,13 +92,20 @@ mongodb_params:
     index: null
   maldita: 
     name: maldita
-    index: null 
+    index:
+      - key: {link: 1}
+        params: {unique: true}
   tweets: 
     name: tweets
     index:
       - key: {id: 1} 
         params: {unique: true}
-      - key: {*search_twitter: 1}
+      - key: {*search_twitter_key: 1}
+      - key: {fact_id: 1}
+  keywords:
+    name: keywords
+    index: 
+      - key: {fact_id: 1}
 
   mynews: 
     name: mynews
@@ -90,7 +115,6 @@ mongodb_params:
     index: 
     - key: {count: 1}
     - key: {words: 1}
-    
 
 pipeline_params:
 

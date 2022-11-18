@@ -5,6 +5,7 @@ import yaml
 import datetime
 import logging
 import logging.config
+import pymongo
 import time
 
 import sys
@@ -37,21 +38,23 @@ logger = logging.getLogger(config_all['logging']['level'])
 def get_arguments(parser):
     parser.add_argument(
         "--query",
-        default="historical",
+        default=None,
         type=str,
         required=False,
-        help="'historical' gets all the data in the API, 'daily' gets the fact-checks from today",
-    )
+        help="'historical' gets all the data in the API, 'daily' gets the fact-checks from today")
+    parser.add_argument("--max_days", default=None, type=int,
+                        required=False)
+    
     return parser
 
 
-def api_call(user, key, api_url, type_query, mycol):
+def api_call(user, key, collection, api_url, type_query, max_days):
 
     params = {'page': 1, 'itemPerPage': 30}
     if type_query == 'historical':
         pass
     elif type_query == 'daily':
-        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=max_days)
         date_yesterday = yesterday.strftime("%Y-%m-%d")
         date_today = datetime.datetime.now().strftime("%Y-%m-%d")
         params['createdAt[strictly_after]'] = date_yesterday
@@ -69,10 +72,14 @@ def api_call(user, key, api_url, type_query, mycol):
         for element in data:
             element['date'] = datetime.datetime.strptime(
                 element['createdAt'], '%Y-%m-%dT%H:%M:%S%z')
-        mycol.insert_many(data)
+        try:
+            collection.insert_many(data, ordered=False)
+
+        except pymongo.errors.BulkWriteError:
+            pass
         time.sleep(1)
     logging.debug('10th posts')
-    for post in mycol.find().limit(10):
+    for post in collection.find().limit(10):
         logging.debug(post)
 
 
@@ -94,10 +101,22 @@ def main():
     collection = open_collection(col_maldita)
     api_user = maldita_credentials['MALDITA_API_USER']
     api_key = maldita_credentials['MALDITA_API_KEY']
-    api_url = config_all['api_maldita_params']['root_url']
+    api_params = config_all['api_maldita_params']
+    api_url = api_params['root_url']
+    api_type_query = api_params['type_query']
+    api_max_days = api_params['max_age_days']
     collection = open_collection(col_maldita)
+    if args.query:
+        type_query = args.query
+    else:
+        type_query = api_type_query
 
-    api_call(api_user, api_key, api_url, args.query, collection)
+    if args.max_days:
+        max_days = args.max_days
+    else:
+        max_days = api_max_days
+
+    api_call(api_user, api_key, collection, api_url, type_query=type_query, max_days=max_days)
 
 
 if __name__ == "__main__":

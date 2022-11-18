@@ -36,16 +36,22 @@ from mongo_utils import mongo_utils
 
 
 def get_arguments(parser):
-    #parser.add_argument("--auto_query", action='store_true', help="The queries will be generated automatically from the fact-checks of that time span")
-    #parser.add_argument("--fromD", default=None, type=str, required=False) #"1654321118"
-    #parser.add_argument("--toD", default=None, type=str, required=False) #"1656913073"
-    parser.add_argument("--max", default="0", type=str, required=False, help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
+    parser.add_argument("--auto_query", action='store_true',
+                        help="The queries will be generated automatically from the fact-checks of that time span")
+    parser.add_argument("--fromD", default=None, type=str,
+                        required=False)  # "1654321118"
+    parser.add_argument("--toD", default=None, type=str,
+                        required=False)  # "1656913073"
+    parser.add_argument("--max", default="0", type=str, required=False,
+                        help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
     parser.add_argument("--type_query", default="pairs", type=str, required=False,
                         help="Indicates how to build the query. Options are: 'pairs', 'restrictive', 'triples ")
-    parser.add_argument("--query", default=None, type=str, required=False, help="the tokens to query, it does not make sense if --auto_query is selected")
-    parser.add_argument("--topic", default="13", type=str, required=False, help='the topic of the news, it does not make sense if --auto_query is selected')
-    #parser.add_argument("--time_span", default=1, type=int, required=False,
-    #                    help='Minimum time from which to get factchecks')
+    parser.add_argument("--query", default=None, type=str, required=False,
+                        help="the tokens to query, it does not make sense if --auto_query is selected")
+    parser.add_argument("--topic", default="13", type=str, required=False,
+                        help='the topic of the news, it does not make sense if --auto_query is selected')
+    parser.add_argument("--time_span", default=1, type=int, required=False,
+                        help='Factchecks from the last X days.')
     parser.add_argument("--time_window", default=7, type=int, required=False,
                         help='Look for news X days before the fact-check.')
     return parser
@@ -60,15 +66,10 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(query_expression, token, max_news, media, time_window, claim_date):
-    # query the news from X days before claim date to X days after claim date
-    #end = datetime.datetime.today()
-    #start = end - datetime.timedelta(days=time_window)
-    end = claim_date + datetime.timedelta(days=time_window)
-    start = claim_date - datetime.timedelta(days=time_window)
-    print(start, end)
-    # TODO: there is an issue with the format of the date in the API
 
+def query(query_expression, token, max_news, media, time_window):
+    end = datetime.datetime.today()
+    start = end - datetime.timedelta(days=time_window)
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
@@ -96,24 +97,27 @@ def query(query_expression, token, max_news, media, time_window, claim_date):
     return response.json()
 
 
-def get_keywords(args, db, type_keywords='keywords_pairs'):
+def get_keywords(args, db, time_span, type_keywords='keywords_pairs'):
     dict_keywords = {}
-    #for collection in ["maldita", "google"]:
     collection = 'keywords'
-    # if args.fromD:
-    #     end = args.fromD
-    #     start = args.toD
-    # else:
-    #     end = datetime.datetime.today()
-    #     start = end - datetime.timedelta(days=time_span)
-    limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
-    # get the keywords of the news older than 7 days and with no search_mynews_key
-    search = {"date":{'$lt': limit_day}, "search_mynews_key": {'$exists': False}}
+    if args.fromD:  # TODO: this has to be formated the right way, right now it does not work
+        end = args.fromD
+        start = args.toD
+    else:
+        end = datetime.datetime.today()
+        start = end - datetime.timedelta(days=time_span)
+    search = {"date": {'$gt': start, '$lt': end}}
     cursor = db[collection].find(search)
     for fact in cursor:
-        #print(fact['text'])
-        #print(fact['keyword_pairs'])
-        dict_keywords[(fact['_id'], collection)] = [fact[type_keywords], fact['date']]
+        try:
+            print(fact['claim'])
+        except KeyError:
+            pass
+        try:
+            print(fact['review'])
+        except KeyError:
+            pass
+        dict_keywords[fact['_id']] = fact[type_keywords]
     return dict_keywords
 
 
@@ -125,9 +129,9 @@ def time_to_int(dateobj):
     total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
     return total
 
-def write_query(keys_all, type_query='pairs'):
-    keys=keys_all[0][:4] # I limit the keywords to 4
-    claim_date = keys_all[1]
+
+def write_query(keys, type_query='pairs'):
+    keys = keys[:4]  # I limit the keywords to 4
     query = ''
     previous_pair = None
     for k in keys:
@@ -149,7 +153,7 @@ def write_query(keys_all, type_query='pairs'):
             query += string
 
     query = query[:-4]
-    return query, claim_date
+    return query
 
 
 def main():
@@ -162,9 +166,9 @@ def main():
 
     # look for the fact-checks of a certain time span and extract the tokens
     if args.type_query in ['pairs', 'restrictive']:
-        keywords = get_keywords(args, db, type_keywords='keywords_pairs')
+        keywords = get_keywords(args, db, args.time_span, type_keywords='keywords_pairs')
     else:
-        keywords = get_keywords(args, db, type_keywords='keywords')
+        keywords = get_keywords(args, db, args.time_span, type_keywords='keywords')
 
     # limit news per
     print('Looking for news about {} factchecks'.format(len(keywords)))
@@ -187,9 +191,9 @@ def main():
 
     n_results = 0
     for ids, keys in keywords.items():
-        query_expression, claim_date = write_query(keys, type_query=args.type_query)
+        query_expression = write_query(keys, type_query=args.type_query)
         print(query_expression)
-        result = query(query_expression, token, max, media, args.time_window, claim_date)
+        result = query(query_expression, token, max, media, args.time_window)
         print(result)
 
         if result == {'detail': 'Too many requests, wait 1h'}:

@@ -6,6 +6,7 @@ import argparse
 import time
 import os
 import yaml
+from pymongo.errors import BulkWriteError
 import datetime
 
 
@@ -36,21 +37,16 @@ logger = logging.getLogger(config_all['logging']['level'])
 def get_arguments(parser):
     parser.add_argument(
         "--query",
-        default="historical",
+        default=None,
         type=str,
         required=False,
         help="'historical' gets all the data in the API, 'daily' gets the fact-checks from today",
     )
+
+    parser.add_argument("--max_days", default=None, type=int,
+                        required=False)
+
     return parser
-
-
-def insert_data(data, mycol):
-    """
-    """
-    for element in data:
-        element['date'] = datetime.datetime.strptime(
-            element['claimReview'][0]['reviewDate'], '%Y-%m-%dT%H:%M:%S%z')
-    mycol.insert_many(data)
 
 
 def api_call(credentials, mycol, list_media, type_query, maxAgeDays=1):
@@ -69,13 +65,21 @@ def api_call(credentials, mycol, list_media, type_query, maxAgeDays=1):
                 data = response["claims"]
                 logger.info('Number of claims: {}'.format(len(data)))
                 for element in data:
-                    element['date'] = datetime.datetime.strptime(element['claimReview'][0]['reviewDate'],
+                    # Getting a list with one element, easier to remove the list
+                    element['claimReview'] = element['claimReview'][0]
+                    element['date'] = datetime.datetime.strptime(element['claimReview']['reviewDate'],
                                                                  '%Y-%m-%dT%H:%M:%S%z')
-                mycol.insert_many(data)
-                time.sleep(5)
+                    print(element)
+                try:
+                    mycol.insert_many(data, ordered=False)
+
+                except BulkWriteError:
+                    pass
+                    time.sleep(5)
             request = query.search_next(request, response)
 
 
+# FIXME to remove
 def open_collection(new=False):
     mydb = mongo_utils.get_mongo_db()
     col_google = config_all['mongodb_params']['google']['name']
@@ -96,16 +100,28 @@ def main():
     factCheckService = build(
         "factchecktools", "v1alpha1", developerKey=google_credentials_key
     )
-    maxAgeDays = config_all['api_google_params']['maxAgeDays']
+    api_params = config_all['api_google_params']
+    api_type_query = api_params['type_query']
+    api_max_days = api_params['max_age_days']
 
-    if args.query == "historical":
+    if args.query:
+        type_query = args.query
+    else:
+        type_query = api_type_query
+
+    if args.max_days:
+        max_days = args.max_days
+    else:
+        max_days = api_max_days
+
+    if type_query == "historical":
         collection = open_collection(new=False)
-        api_call(factCheckService, collection, list_media, args.query)
+        api_call(factCheckService, collection, list_media, type_query)
 
-    elif args.query == "daily":
+    elif type_query == "daily":
         collection = open_collection(new=False)
         api_call(factCheckService, collection, list_media,
-                 args.query, maxAgeDays=maxAgeDays)
+                 type_query, maxAgeDays=max_days)
 
 
 if __name__ == "__main__":

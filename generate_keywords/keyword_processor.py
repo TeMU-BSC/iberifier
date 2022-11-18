@@ -24,15 +24,13 @@ logger = logging.getLogger(config_all['logging']['level'])
 
 
 def get_arguments(parser):
-    parser.add_argument("--historical", action='store_true',
-                        help="use when there is a lot of data, and not just the daily run")
     parser.add_argument("--rerun", action='store_true',
                         help="rerun the keywords generation")
     parser.add_argument("--time_window", default=None,
                         type=int, help="Number of days to compute")
-    parser.add_argument("--co_threshold", default=20, type=int,
+    parser.add_argument("--co_threshold", default=None, type=int,
                         help="Number of cooccurrencies threshold")
-    parser.add_argument("--max_keywords", default=5,
+    parser.add_argument("--max_words", default=None,
                         type=int, help="Maximum number of keywords")
     return parser
 
@@ -73,10 +71,11 @@ def delete_from_cooccurrency(keywords_list, db, col_dict):
         )
 
 
-def getting_records(db, collection):
-    search = {"keywords": {"$exists": False}}
-    # if not args.rerun:
-    #     search["keyword_pairs"] = {"$exists": False}
+def getting_records(db, collection, rerun):
+    if rerun:
+        search = {}
+    else:
+        search = {"keywords": {"$exists": False}}
     # if args.time_window:
     #     today = datetime.today()
     #     days_ago = today - timedelta(days=args.time_window)
@@ -91,7 +90,6 @@ def create_and_filter_pairs(db, keywords, threshold):
     filtered_pairs = []
     pairs = ((x, y) for x in keywords for y in keywords if y > x)
     for pair in pairs:
-        # print(pair)
         # filter pairs that are too co-occurring
         check = [x.lower() for x in pair]
         check.sort()
@@ -101,7 +99,6 @@ def create_and_filter_pairs(db, keywords, threshold):
                 if item['counts'] > threshold:
                     continue
         filtered_pairs.append(pair)
-        # print(filtered_pairs)
     return filtered_pairs
 
 
@@ -171,7 +168,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
-    print(args)
 
     # DB Connection
     logger.info("Connecting to the db")
@@ -179,10 +175,29 @@ def main():
     logger.info("Connected to: {}".format(db))
 
     col_keywords = config_all['mongodb_params']['keywords']['name']
-    for record in getting_records(db, col_keywords):
+    keywords_params = config_all['keywords_params']
+    config_max_words = keywords_params['max_words']
+    config_co_threshold = keywords_params['co_threshold']
+    config_rerun = keywords_params['rerun']
+
+    if args.max_words:
+        max_words = args.max_words
+    else:
+        max_words = config_max_words
+
+    if args.co_threshold:
+        co_threshold = args.co_threshold
+    else:
+        co_threshold = config_co_threshold
+    if args.rerun:
+        rerun = args.rerun
+    else:
+        rerun = config_rerun
+
+    for record in getting_records(db, col_keywords, rerun):
 
         keywords, keywords_pairs = strategy_one(
-            db, record, max_words=6, threshold=4)
+            db, record, max_words=max_words, threshold=co_threshold)
 
         update_fact(
             db,

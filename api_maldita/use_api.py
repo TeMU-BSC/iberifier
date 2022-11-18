@@ -103,7 +103,6 @@ def main():
     api_key = maldita_credentials['MALDITA_API_KEY']
     api_params = config_all['api_maldita_params']
     api_url = api_params['root_url']
-    print(api_url)
     api_type_query = api_params['type_query']
     api_max_days = api_params['max_age_days']
     collection = open_collection(col_maldita)

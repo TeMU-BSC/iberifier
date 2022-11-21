@@ -133,7 +133,7 @@ def main():
         max_news = 100/len(keywords)
         max_news = str(int(max_news))
     else:
-        max_news = int(args.max_news)
+        max_news = int(args.max)
 
     # load media list
     with open('mynews/matching_list.csv') as f:

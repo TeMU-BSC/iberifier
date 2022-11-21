@@ -4,6 +4,7 @@ import sys
 import tqdm
 import random
 from datetime import datetime, timedelta
+import logging.config
 
 import yaml
 

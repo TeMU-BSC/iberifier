@@ -10,18 +10,20 @@ import datetime
 import time
 import random
 import tqdm
+import logging.config
 
 import logging
 from itertools import combinations
 
-cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
-spec = importlib.util.spec_from_file_location("credentials", cred_path)
-credentials = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(credentials)
-mynews_credentials = credentials.mynews_credentials
+# cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
+# spec = importlib.util.spec_from_file_location("credentials", cred_path)
+# credentials = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(credentials)
+# mynews_credentials = credentials.mynews_credentials
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 from mongo_utils import mongo_utils
 
 logger = logging.getLogger(__name__)
@@ -110,7 +112,7 @@ def get_lists_ids(db,
                   max_claims_per_day,
                   days_before,
                   days_after):
-    limit_day = datetime.today() - datetime.timedelta(days=days_after)
+    limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after)
     aggregate_query = [
         {
             "$match": {
@@ -135,13 +137,14 @@ def get_lists_ids(db,
 
 
 def get_documents(db, col_keywords, keywords_key,
-                  search_twitter_key, max_claims_per_day, max_news_per_claim,
+                  search_mynews_key, max_claims_per_day, max_news_per_claim,
                   days_before, days_after):
 
+    global max_news
     list_ids = get_lists_ids(db,
                              col_keywords,
                              keywords_key=keywords_key,
-                             search_twitter_key=search_twitter_key,
+                             search_mynews_key=search_mynews_key,
                              max_claims_per_day=max_claims_per_day,
                              days_before=days_before, days_after=days_after)
 
@@ -152,11 +155,10 @@ def get_documents(db, col_keywords, keywords_key,
         max_news = str(int(max_news))
     else:
         max_news = int(max_news_per_claim)
-    global tqdm_length
     cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)
 
     for record in tqdm.tqdm(cursor, total=tqdm_length):
-        yield record, max_news
+        yield record
     cursor.close()
 
 
@@ -183,8 +185,8 @@ def time_to_int(dateobj):
     return total
 
 
-def write_query(keywords, keywords_limits=4, type_strategy='pairs'):
-    keys = keywords[:keywords_limits]  # I limit the keywords to 4
+def write_query(keywords, keywords_limit=4, type_strategy='pairs'):
+    keys = keywords[:keywords_limit]  # I limit the keywords to 4
     query = ''
     previous_pair = None
     for k in keys:
@@ -206,7 +208,7 @@ def write_query(keywords, keywords_limits=4, type_strategy='pairs'):
             query += string
 
     # Is it to be linked to the keywords limit too?
-    query = query[:-keywords_limits]
+    query = query[:-keywords_limit]
     return query
 
 
@@ -224,7 +226,7 @@ def main():
     api_password = mynews_credentials['password']
 
     strategy = config_all['keywords_params']['strategy']
-    mynews_url = config_all['mynews_params']['root_url']
+    mynews_url = config_all['api_mynews_params']['root_url']
     search_mynews_key = config_all['api_mynews_params']['search_mynews_key']
     mynews_search_params = config_all['api_mynews_params']['search_params']
     max_claims_per_day = mynews_search_params['max_claims_per_day']
@@ -253,7 +255,7 @@ def main():
             media.append(line[0])
 
     # create the query with the "(BSC AND BARCELONA) OR (BSC AND MADRID)" format and the timespan
-    token = get_token()
+    token = get_token(api_key, api_password)
 
     n_results = 0
     sources_to_update = []
@@ -263,6 +265,7 @@ def main():
                              keywords_key=strategy,
                              search_mynews_key=search_mynews_key,
                              max_claims_per_day=max_claims_per_day,
+                             max_news_per_claim=max_news_per_claim,
                              days_before=days_before,
                              days_after=days_after):
         fact_id = doc['fact_id']
@@ -275,8 +278,11 @@ def main():
             type_strategy=type_query
         )
         logger.debug(query_expression)
-        result = query(query_expression, token, max_news_per_claim,
-                       media, claim_date)
+        result = query(query_expression, token, max_news,
+                       media, claim_date,
+                       days_before=days_before,
+                       days_after=days_after
+                       )
         logger.debug(result)
 
         if result == {'detail': 'Too many requests, wait 1h'}:

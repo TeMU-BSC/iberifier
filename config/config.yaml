@@ -2,16 +2,16 @@ api_twitter_params:
 
   search_twitter_key: &search_twitter_key search_twitter_key
   cred_filename: api_twitter_credentials.yaml
-  max_claims_per_day: 100
+  max_claims_per_day: false
   search_params:
 
     query: null
     additional_query: ['-is:retweet']
-    max_tweets: 500
+    max_tweets: 10000
     date: null
     # date: '28-09-2022'
-    days_before: 1
-    days_after: 5
+    days_before: 7
+    days_after: 7
     output_format: a
 
   rule_params:
@@ -81,7 +81,7 @@ keywords_params:
   keywords_key: keywords
   keywords_pair_key: keywords_pairs
   rerun: false
-  co_threshold: 15
+  co_threshold: 20
   max_words: 5
 
 mongodb_params:

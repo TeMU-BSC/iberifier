@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import tqdm
+import random
 from datetime import datetime, timedelta
 
 import yaml
@@ -61,8 +62,11 @@ def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims
             }
         }
     ]
-    return [i['_id'] for i in db[col_keywords].aggregate(aggregate_query)]
+    results = [i['_id'] for i in db[col_keywords].aggregate(aggregate_query)]
 
+    if max_claims_per_day:
+        return random.sample(results, max_claims_per_day)
+    return  results
 
 def get_documents(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
 

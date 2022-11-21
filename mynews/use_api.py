@@ -1,4 +1,6 @@
+import sys
 import csv
+import yaml
 
 import requests
 import os
@@ -6,6 +8,10 @@ import importlib.util
 import argparse
 import datetime
 import time
+import random
+import tqdm
+
+import logging
 from itertools import combinations
 
 cred_path = os.path.join(os.path.dirname(__file__), "../credentials.py")
@@ -14,23 +20,50 @@ credentials = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(credentials)
 mynews_credentials = credentials.mynews_credentials
 
-import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
 
+logger = logging.getLogger(__name__)
+
+# Load config and credentials
+
+config_path = os.path.join(os.path.dirname(
+    __file__), '../config', 'config.yaml')
+config_all = yaml.safe_load(open(config_path))
+
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
+
+
+mynews_cred_path = os.path.join(
+    os.path.dirname(__file__),
+    "../config",
+    config_all["api_mynews_params"]["cred_filename"],
+)
+mynews_credentials = yaml.safe_load(open(mynews_cred_path))[
+    "mynews_api_credentials"]
+
+
 def get_arguments(parser):
-    parser.add_argument("--max", default="0", type=str, required=False, help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
-    parser.add_argument("--type_query", default="pairs", type=str, required=False,
+    parser.add_argument("--max", default="0", type=str, required=False,
+                        help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
+    parser.add_argument("--type_query", default=None, type=str, required=False,
                         help="Indicates how to build the query. Options are: 'pairs', 'restrictive', 'triples ")
-    parser.add_argument("--query", default=None, type=str, required=False, help="the tokens to query, it does not make sense if --auto_query is selected")
-    parser.add_argument("--topic", default="13", type=str, required=False, help='the topic of the news, it does not make sense if --auto_query is selected')
-    parser.add_argument("--time_window", default=7, type=int, required=False,
-                        help='Look for news X days before the fact-check.')
+    parser.add_argument("--query", default=None, type=str, required=False,
+                        help="the tokens to query, it does not make sense if --auto_query is selected")
+    parser.add_argument("--topic", default=None, type=str, required=False,
+                        help='the topic of the news, it does not make sense if --auto_query is selected')
     return parser
 
-def get_token():
-    public_key, password = mynews_credentials()
+
+def get_token(public_key, password):
     files = {
         'public_key': (None, public_key),
         'password': (None, password),
@@ -38,10 +71,11 @@ def get_token():
     TOKEN = requests.post('https://api.mynews.es/api/token/', files=files)
     return TOKEN
 
-def query(query_expression, token, max_news, media, time_window, claim_date):
+
+def query(query_expression, token, max_news, media, claim_date, days_before, days_after):
     # query the news from X days before claim date to X days after claim date
-    end = claim_date + datetime.timedelta(days=time_window)
-    start = claim_date - datetime.timedelta(days=time_window)
+    end = claim_date + datetime.timedelta(days=days_after)
+    start = claim_date - datetime.timedelta(days=days_before)
     end_int = time_to_int(end)
     start_int = time_to_int(start)
 
@@ -63,9 +97,67 @@ def query(query_expression, token, max_news, media, time_window, claim_date):
 
     extended = files + publications
 
-    response = requests.post('https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
+    response = requests.post(
+        'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
 
     return response.json()
+
+
+def get_lists_ids(db,
+                  col_keywords,
+                  keywords_key,
+                  search_mynews_key,
+                  max_claims_per_day,
+                  days_before,
+                  days_after):
+    limit_day = datetime.today() - datetime.timedelta(days=days_after)
+    aggregate_query = [
+        {
+            "$match": {
+                "$and": [{
+                    search_mynews_key: {'$exists': False}},
+                    {'date': {'$lt': limit_day}}
+                ]
+            },
+
+        },
+        {
+            "$project": {
+                "_id": 1
+            }
+        }
+    ]
+    results = [i['_id'] for i in db[col_keywords].aggregate(aggregate_query)]
+
+    if max_claims_per_day:
+        return random.sample(results, max_claims_per_day)
+    return results
+
+
+def get_documents(db, col_keywords, keywords_key,
+                  search_twitter_key, max_claims_per_day, max_news_per_claim,
+                  days_before, days_after):
+
+    list_ids = get_lists_ids(db,
+                             col_keywords,
+                             keywords_key=keywords_key,
+                             search_twitter_key=search_twitter_key,
+                             max_claims_per_day=max_claims_per_day,
+                             days_before=days_before, days_after=days_after)
+
+    tqdm_length = len(list_ids)
+
+    if max_news_per_claim == 'auto':
+        max_news = 100/tqdm_length
+        max_news = str(int(max_news))
+    else:
+        max_news = int(max_news_per_claim)
+    global tqdm_length
+    cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)
+
+    for record in tqdm.tqdm(cursor, total=tqdm_length):
+        yield record, max_news
+    cursor.close()
 
 
 def get_keywords(args, db, type_keywords='keywords_pairs'):
@@ -73,10 +165,12 @@ def get_keywords(args, db, type_keywords='keywords_pairs'):
     collection = 'keywords'
     limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
     # get the keywords of the news older than 7 days and with no search_mynews_key
-    search = {"date":{'$lt': limit_day}, "search_mynews_key": {'$exists': False}}
+    search = {"date": {'$lt': limit_day},
+              "search_mynews_key": {'$exists': False}}
     cursor = db[collection].find(search)
     for fact in cursor:
-        dict_keywords[(fact['_id'], collection)] = [fact[type_keywords], fact['date']]
+        dict_keywords[(fact['_id'], collection)] = [
+            fact[type_keywords], fact['date']]
     return dict_keywords
 
 
@@ -88,9 +182,9 @@ def time_to_int(dateobj):
     total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
     return total
 
-def write_query(keys_all, type_strategy='pairs'):
-    keys=keys_all[0][:4] # I limit the keywords to 4
-    claim_date = keys_all[1]
+
+def write_query(keywords, keywords_limits=4, type_strategy='pairs'):
+    keys = keywords[:keywords_limits]  # I limit the keywords to 4
     query = ''
     previous_pair = None
     for k in keys:
@@ -101,7 +195,8 @@ def write_query(keys_all, type_strategy='pairs'):
             if not previous_pair:
                 string = '(' + k[0] + ' AND ' + k[1] + ') OR '
             else:
-                string = '(' + k[0] + ' AND ' + k[1] + ') AND ('+ previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
+                string = '(' + k[0] + ' AND ' + k[1] + ') AND (' + \
+                    previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
             previous_pair = k
         query += string
     if type_strategy == "triples":
@@ -110,30 +205,45 @@ def write_query(keys_all, type_strategy='pairs'):
             string = '(' + c[0] + ' AND ' + c[1] + ' AND ' + c[2] + ') OR '
             query += string
 
-    query = query[:-4]
-    return query, claim_date
+    # Is it to be linked to the keywords limit too?
+    query = query[:-keywords_limits]
+    return query
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
-    print(args)
+    logger.debug(args)
 
     db = mongo_utils.get_mongo_db()
+    col_keywords = config_all['mongodb_params']['keywords']['name']
+    col_mynews = config_all['mongodb_params']['mynews']['name']
+
+    api_key = mynews_credentials['public_key']
+    api_password = mynews_credentials['password']
+
+    strategy = config_all['keywords_params']['strategy']
+    mynews_url = config_all['mynews_params']['root_url']
+    search_mynews_key = config_all['api_mynews_params']['search_mynews_key']
+    mynews_search_params = config_all['api_mynews_params']['search_params']
+    max_claims_per_day = mynews_search_params['max_claims_per_day']
+    max_news_per_claim = mynews_search_params['max_news_per_claim']
+    days_before = mynews_search_params['days_before']
+    days_after = mynews_search_params['days_after']
+    type_query = mynews_search_params['type_query']
+    keywords_limit = mynews_search_params['keywords_limit']
 
     # look for the fact-checks of a certain time span and extract the tokens
-    if args.type_query in ['pairs', 'restrictive']:
-        keywords = get_keywords(args, db, type_keywords='keywords_pairs')
-    else:
-        keywords = get_keywords(args, db, type_keywords='keywords')
+    if args.type_query:
+        type_query = args.type_query
+
+    if type_query in ['pairs', 'restrictive']:
+        strategy = 'keywords_pairs'
 
     # limit news per
-    print('Looking for news about {} factchecks'.format(len(keywords)))
-    if args.max == 'auto':
-        max_news = 100/len(keywords)
-        max_news = str(int(max_news))
-    else:
-        max_news = int(args.max_news)
+    if args.max:
+        max_news_per_claim = args.max
 
     # load media list
     with open('mynews/matching_list.csv') as f:
@@ -143,33 +253,52 @@ def main():
             media.append(line[0])
 
     # create the query with the "(BSC AND BARCELONA) OR (BSC AND MADRID)" format and the timespan
-    mynews = db['mynews']
     token = get_token()
 
     n_results = 0
-    for ids, keys in keywords.items():
-        query_expression, claim_date = write_query(keys, type_strategy=args.type_query)
-        print(query_expression)
-        result = query(query_expression, token, max_news, media, args.time_window, claim_date)
-        print(result)
+    sources_to_update = []
+
+    for doc in get_documents(db,
+                             col_keywords=col_keywords,
+                             keywords_key=strategy,
+                             search_mynews_key=search_mynews_key,
+                             max_claims_per_day=max_claims_per_day,
+                             days_before=days_before,
+                             days_after=days_after):
+        fact_id = doc['fact_id']
+        claim_date = doc['date']
+        keyword_search = doc[strategy]
+
+        query_expression = write_query(
+            keyword_search,
+            keywords_limit=keywords_limit,
+            type_strategy=type_query
+        )
+        logger.debug(query_expression)
+        result = query(query_expression, token, max_news_per_claim,
+                       media, claim_date)
+        logger.debug(result)
 
         if result == {'detail': 'Too many requests, wait 1h'}:
-            print('Rate limit, wait 1 hour.')
+            logger.debug('Rate limit, wait 1 hour.')
             time.sleep(3660)
         elif len(result['news']) != 0:
             total = result['total']
             news = result['news']
-            print('Results found:',len(news))
+            logger.debug('Results found:', len(news))
             n_results += len(news)
             for n in news:
-                n['related_to'] = ids[0]
-                n['related_to_source'] = ids[1]
+                n['fact_id'] = fact_id
                 n['date'] = datetime.datetime.strptime(n['Date'], '%d/%m/%Y')
                 n['query_output'] = total
-            mynews.insert_many(news)
+            db[col_mynews].insert_many(news)
 
-    #if n_results < 100:
-    #    print('rerun')
+        sources_to_update.append(fact_id)
+
+    db[col_keywords].update_many(
+        {"fact_id": {"$in": sources_to_update}}, {
+            "$set": {search_mynews_key: datetime.now()}}
+    )
 
 
 if __name__ == "__main__":

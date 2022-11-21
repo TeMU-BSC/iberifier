@@ -66,7 +66,8 @@ def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims
 
     if max_claims_per_day:
         return random.sample(results, max_claims_per_day)
-    return  results
+    return results
+
 
 def get_documents(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
 
@@ -87,7 +88,7 @@ def main():
     col_keywords = config_all['mongodb_params']['keywords']['name']
     col_tweets = config_all['mongodb_params']['tweets']['name']
 
-    keyword_pairs_key = config_all['keywords_params']['keywords_pair_key']
+    strategy = config_all['keywords_params']['strategy']
 
     max_claims_per_day = config_all['api_twitter_params']['max_claims_per_day']
     search_twitter_key = config_all['api_twitter_params']['search_twitter_key']
@@ -103,7 +104,7 @@ def main():
     # get only the documents who were not searched for
     logger.info("Parsing the different claims")
     for doc in get_documents(mydb, col_keywords,
-                             keywords_key=keyword_pairs_key,
+                             keywords_key=strategy,
                              search_twitter_key=search_twitter_key,
                              max_claims_per_day=max_claims_per_day,
                              days_before=days_before, days_after=days_after):
@@ -111,23 +112,23 @@ def main():
         post_date_str = doc['date']
         # post_date = datetime.strptime(post_date_str, "%Y-%m-%dT%H:%M:%S%z")
         twitter_search_params['date'] = post_date_str
-        keyword_pairs = doc[keyword_pairs_key]
+        keyword_search = doc['strategy']
 
         i = 0
-        while i < len(keyword_pairs):
+        while i < len(keyword_search):
 
-            query = " ".join(keyword_pairs[i])
+            query = " ".join(keyword_search[i])
             newquery = query
             i += 1
             # Add bigrams to query until it reaches the 1024 query limit
             # or all bigrams are added
             # TODO include a different strategy otherwise the keywords will be the first one only
             # TODO or include that in the keywords_processor script
-            while i < len(keyword_pairs) and len(newquery) < 1024 - (
+            while i < len(keyword_search) and len(newquery) < 1024 - (
                 len("() {}".format(twitter_additional_query))
             ):
                 query = newquery
-                newquery += " OR " + " ".join(keyword_pairs[i])
+                newquery += " OR " + " ".join(keyword_search[i])
                 i += 1
 
             # query = "(" + query + ") -is:retweet"

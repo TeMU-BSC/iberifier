@@ -56,7 +56,18 @@ api_maldita_params:
 
 
 api_mynews_params:
-
+  cred_filename: api_mynews_credentials.yaml
+  root_url: https://api.mynews.es/api/hemeroteca/
+  search_mynews_key: &search_mynews_key search_mynews_key
+  max_claims_per_day: false
+  max_news_per_claim: auto
+  search_params:
+    days_before: 7
+    days_after: 7
+    max_news_per_day: auto
+    type_query: pairs
+    media_list_file: mynews/matching_list.csv
+    keywords_limit: 4
 
 ent_extraction_params:
   
@@ -79,9 +90,9 @@ keywords_params:
   ner_key: *en_ner_key
   pos_key: *en_pos_key
   keywords_key: keywords
-  keywords_pair_key: keywords_pairs
+  strategy: keywords_pairs
   rerun: false
-  co_threshold: 20
+  co_threshold: 30
   max_words: 5
 
 mongodb_params:
@@ -109,7 +120,9 @@ mongodb_params:
 
   mynews: 
     name: mynews
-    index: null
+    index:
+      - key: {*search_mynews_key: 1}
+      - key: {fact_id: 1}
   cooccurrence:
     name: cooccurrence
     index: 

@@ -13,4 +13,4 @@ python generate_keywords/keyword_processor.py
 python api_twitter/search_from_keys.py
 
 # get news that could be related to this fact-checks
-python mynews/use_api.py --max 0 --time_window 1 --type_query triples
+python mynews/use_api.py

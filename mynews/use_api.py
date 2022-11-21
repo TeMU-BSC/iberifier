@@ -68,7 +68,7 @@ def query(query_expression, token, max_news, media, time_window, claim_date):
     return response.json()
 
 
-def get_keywords(args, db, type='keywords_pairs'):
+def get_keywords(args, db, type_keywords='keywords_pairs'):
     dict_keywords = {}
     collection = 'keywords'
     limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
@@ -76,7 +76,7 @@ def get_keywords(args, db, type='keywords_pairs'):
     search = {"date":{'$lt': limit_day}, "search_mynews_key": {'$exists': False}}
     cursor = db[collection].find(search)
     for fact in cursor:
-        dict_keywords[(fact['_id'], collection)] = [fact[type], fact['date']]
+        dict_keywords[(fact['_id'], collection)] = [fact[type_keywords], fact['date']]
     return dict_keywords
 
 
@@ -88,23 +88,23 @@ def time_to_int(dateobj):
     total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
     return total
 
-def write_query(keys_all, type='pairs'):
+def write_query(keys_all, type_strategy='pairs'):
     keys=keys_all[0][:4] # I limit the keywords to 4
     claim_date = keys_all[1]
     query = ''
     previous_pair = None
     for k in keys:
         string = ''
-        if type == "pairs":
+        if type_strategy == "pairs":
             string = '(' + k[0] + ' AND ' + k[1] + ') OR '
-        elif type == "restrictive":
+        elif type_strategy == "restrictive":
             if not previous_pair:
                 string = '(' + k[0] + ' AND ' + k[1] + ') OR '
             else:
                 string = '(' + k[0] + ' AND ' + k[1] + ') AND ('+ previous_pair[0] + ' AND ' + previous_pair[1] + ') OR '
             previous_pair = k
         query += string
-    if type == "triples":
+    if type_strategy == "triples":
         comb = combinations(keys, 3)
         for c in comb:
             string = '(' + c[0] + ' AND ' + c[1] + ' AND ' + c[2] + ') OR '
@@ -123,17 +123,17 @@ def main():
 
     # look for the fact-checks of a certain time span and extract the tokens
     if args.type_query in ['pairs', 'restrictive']:
-        keywords = get_keywords(args, db, type='keywords_pairs')
+        keywords = get_keywords(args, db, type_keywords='keywords_pairs')
     else:
-        keywords = get_keywords(args, db, type='keywords')
+        keywords = get_keywords(args, db, type_keywords='keywords')
 
     # limit news per
     print('Looking for news about {} factchecks'.format(len(keywords)))
     if args.max == 'auto':
-        max = 100/len(keywords)
-        max = str(int(max))
+        max_news = 100/len(keywords)
+        max_news = str(int(max_news))
     else:
-        max = int(args.max)
+        max_news = int(args.max_news)
 
     # load media list
     with open('mynews/matching_list.csv') as f:
@@ -148,9 +148,9 @@ def main():
 
     n_results = 0
     for ids, keys in keywords.items():
-        query_expression, claim_date = write_query(keys, type=args.type_query)
+        query_expression, claim_date = write_query(keys, type_strategy=args.type_query)
         print(query_expression)
-        result = query(query_expression, token, max, media, args.time_window, claim_date)
+        result = query(query_expression, token, max_news, media, args.time_window, claim_date)
         print(result)
 
         if result == {'detail': 'Too many requests, wait 1h'}:

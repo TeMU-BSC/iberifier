@@ -242,7 +242,6 @@ def main():
         strategy = 'keywords_pairs'
 
     # limit news per
-<<<<<<< HEAD
     if args.max:
         max_news_per_claim = args.max
 

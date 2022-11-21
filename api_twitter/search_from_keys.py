@@ -113,7 +113,7 @@ def main():
         post_date_str = doc['date']
         # post_date = datetime.strptime(post_date_str, "%Y-%m-%dT%H:%M:%S%z")
         twitter_search_params['date'] = post_date_str
-        keyword_search = doc['strategy']
+        keyword_search = doc[strategy]
 
         i = 0
         while i < len(keyword_search):

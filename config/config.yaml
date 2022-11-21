@@ -64,7 +64,6 @@ api_mynews_params:
     max_news_per_claim: auto
     days_before: 7
     days_after: 7
-    max_news_per_day: auto
     type_query: pairs
     media_list_file: mynews/matching_list.csv
     keywords_limit: 4

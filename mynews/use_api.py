@@ -11,6 +11,7 @@ import time
 import random
 import tqdm
 import logging.config
+import pymongo
 
 import logging
 from itertools import combinations
@@ -302,8 +303,10 @@ def main():
                 n['fact_id'] = fact_id
                 n['date'] = datetime.datetime.strptime(n['Date'], '%d/%m/%Y')
                 n['query_output'] = total
-            db[col_mynews].insert_many(news)
-
+            try:
+                db[col_mynews].insert_many(news, ordered=False)
+            except pymongo.errors.BulkWriteError:
+                pass
         sources_to_update.append(fact_id)
 
     db[col_keywords].update_many(

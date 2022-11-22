@@ -124,6 +124,8 @@ mongodb_params:
     index:
       - key: {*search_mynews_key: 1}
       - key: {fact_id: 1}
+      - key: {IdDocument: 1}
+        params: {unique: true}
   cooccurrence:
     name: cooccurrence
     index: 

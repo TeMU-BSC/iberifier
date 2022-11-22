@@ -287,7 +287,7 @@ def main():
                        )
         logger.info(result)
 
-        print(result['total'])
+        print('', result['total'])
         print(len(result['news']))
 
         if result == {'detail': 'Too many requests, wait 1h'}:

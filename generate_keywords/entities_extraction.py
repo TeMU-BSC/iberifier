@@ -1,22 +1,16 @@
 import yaml
-import argparse
-import itertools
-import logging
 import os
 import re
 import string
 import sys
-from datetime import datetime, timedelta
 import logging.config
 import tqdm
-
-from bs4 import BeautifulSoup
-# from collections import OrderedDict
 from language_detector import detect_language
+from bs4 import BeautifulSoup
 from transformers import pipeline
 
-from mongo_utils import mongo_utils
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from mongo_utils import mongo_utils
 
 config_path = os.path.join(os.path.dirname(
     __file__), '../config', 'config.yaml')
@@ -165,13 +159,17 @@ def get_documents(db, col_factcheck, col_keyword, field):
             record, text_field=field)
     cursor.close()
 
+def detect_lang(txt):
+    lang_dect = detect_language(txt)
+    return lang_dect["pref_lang"]
 
-# FIXME: Assumed so far but should be inferred as before
-def assign_lang(reviewer):
-    if reviewer in ['Maldita.es', 'EFE Verifica', 'Verificat', 'Newtral']:
+def assign_lang(reviewer, text):
+    if reviewer in ['Maldita.es', 'EFE Verifica', 'Newtral']:
         return 'es'
-    elif reviewer in ['Poligrapho']:
+    elif reviewer in ['Polígrafo']:
         return 'pt'
+    elif reviewer in ['Verificat']:
+        return detect_lang(text)
     else:
         return None
 
@@ -196,7 +194,7 @@ def main():
         "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
     dict_loaded_models = load_all_models(dict_models)
-    logger.debug(dict_loaded_models)
+    #logger.debug(dict_loaded_models)
     for col in ['maldita', 'google']:
         logger.info(f'{col}: NER & POS')
         for info in get_documents(db, col, col_keywords, fields[col]):
@@ -210,11 +208,15 @@ def main():
             except KeyError:
                 reviewer = None
             try:
+                claim, urls_claim = extract_url(info['claim'], url_re)
+            except (KeyError, TypeError):
+                claim = urls_claim = None
+            try:
                 lang = info['lang']
             except KeyError:
                 try:
                     # lang = detect_language(claim + ' ' + review)
-                    lang = assign_lang(reviewer)
+                    lang = assign_lang(reviewer, claim)
                 except TypeError:
                     lang = None
 
@@ -222,16 +224,8 @@ def main():
                 ner_model = select_model('ner', lang, dict_loaded_models)
                 pos_model = select_model('pos', lang, dict_loaded_models)
 
-                try:
-                    claim, urls_claim = extract_url(info['claim'], url_re)
-                except (KeyError, TypeError):
-                    claim = urls_claim = None
-
-                if claim:
-                    ner_claim = get_words_from_model(ner_model, claim)
-                    pos_claim = get_words_from_model(pos_model, claim)
-                else:
-                    ner_claim = pos_claim = None
+                ner_claim = get_words_from_model(ner_model, claim)
+                pos_claim = get_words_from_model(pos_model, claim)
 
                 try:
                     review, urls_review = extract_url(info['review'], url_re)

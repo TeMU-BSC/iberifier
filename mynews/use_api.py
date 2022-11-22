@@ -216,7 +216,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
-    logger.debug(args)
+    logger.info(args)
 
     db = mongo_utils.get_mongo_db()
     col_keywords = config_all['mongodb_params']['keywords']['name']
@@ -303,7 +303,7 @@ def main():
 
     db[col_keywords].update_many(
         {"fact_id": {"$in": sources_to_update}}, {
-            "$set": {search_mynews_key: datetime.now()}}
+            "$set": {search_mynews_key: datetime.datetime.now()}}
     )
 
 

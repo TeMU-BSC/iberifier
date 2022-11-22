@@ -34,12 +34,12 @@ api_google_params:
   type_query: daily
   max_age_days: 3
   fields:
-    claim: text
-    review: claimReview.title
-    lang: claimReview.languageCode
-    url: claimReview.url
-    reviewer: claimReview.publisher.name
-    date: date
+    claim: &claim_google text
+    review: &review_google claimReview.title
+    lang: &lang_google claimReview.languageCode
+    url: &url_google claimReview.url
+    reviewer: &reviewer_google claimReview.publisher.name
+    date: &date_google date
 
 
 api_maldita_params:
@@ -48,11 +48,11 @@ api_maldita_params:
   type_query: daily
   max_age_days: 3
   fields:
-    claim: content
-    review: text
-    url: link
-    reviewer: organization.name
-    date: date
+    claim: &claim_maldita content
+    review: &review_maldita text
+    url: &url_maldita link
+    reviewer: &reviewer_maldita organization.name
+    date:  &date_maldita date
 
 
 api_mynews_params:
@@ -99,11 +99,13 @@ mongodb_params:
   cred_filename: mongodb_credentials.yaml
   google:
     name: google
-    index: null
+    index:
+      - key: {*url_google: 1}
+        params: {unique: true}
   maldita: 
     name: maldita
     index:
-      - key: {link: 1}
+      - key: {*url_maldita: 1}
         params: {unique: true}
   tweets: 
     name: tweets

@@ -22,13 +22,15 @@ with open(logging_config_path,  "r") as f:
 
 logger = logging.getLogger(config_all['logging']['level'])
 
-
 if __name__ == "__main__":
 
     mydb = mongo_utils.get_mongo_db()
     db_params = config_all['mongodb_params']
     for key in db_params:
+        # for k in text_field:
+        #     info[k] = _get_val_from_dot(record, text_field[k])
         try:
+            # print(db_params[key])
             col_name = db_params[key]['name']
         except TypeError:
             col_name = None
@@ -48,7 +50,8 @@ if __name__ == "__main__":
                             elif i['key'][k] == 'text':
                                 i['key'][k] = TEXT
 
-                        mydb[col_name].create_index(i['key'].items(), **i['params'])
+                        mydb[col_name].create_index(
+                            i['key'].items(), **i['params'])
                         logger.info(
                             f"Done index on {i['key']} with params {i['params']}")
                     except KeyError:

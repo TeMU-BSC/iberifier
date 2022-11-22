@@ -1,3 +1,6 @@
+#!/bin/bash
+
+source venv/bin/activate
 
 # get the daily fact-checks from google and maldita
 python api_google/use_api.py

@@ -68,6 +68,7 @@ api_mynews_params:
     media_list_file: mynews/matching_list.csv
     keywords_limit: 4
 
+
 ent_extraction_params:
   
   ner_key: &en_ner_key ner_key
@@ -85,6 +86,7 @@ ent_extraction_params:
       ca: projecte-aina/roberta-base-ca-cased-pos
       pt: wietsedv/xlm-roberta-base-ft-udpos28-pt
 
+
 keywords_params:
   ner_key: *en_ner_key
   pos_key: *en_pos_key
@@ -93,6 +95,7 @@ keywords_params:
   rerun: false
   co_threshold: 30
   max_words: 5
+
 
 mongodb_params:
   
@@ -107,6 +110,7 @@ mongodb_params:
     index:
       - key: {*url_maldita: 1}
         params: {unique: true}
+
   tweets: 
     name: tweets
     index:
@@ -114,6 +118,7 @@ mongodb_params:
         params: {unique: true}
       - key: {*search_twitter_key: 1}
       - key: {fact_id: 1}
+
   keywords:
     name: keywords
     index: 
@@ -126,6 +131,7 @@ mongodb_params:
       - key: {fact_id: 1}
       - key: {IdDocument: 1}
         params: {unique: true}
+
   cooccurrence:
     name: cooccurrence
     index: 

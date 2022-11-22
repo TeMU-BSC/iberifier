@@ -64,7 +64,7 @@ api_mynews_params:
     max_news_per_claim: auto
     days_before: 7
     days_after: 7
-    type_query: pairs
+    type_query: triples
     media_list_file: mynews/matching_list.csv
     keywords_limit: 4
 
@@ -77,7 +77,7 @@ ent_extraction_params:
   language_models:
     ner:
 
-      es: ./models/roberta-base-bne-capitel-ner-plus
+      es: PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
       ca: projecte-aina/roberta-base-ca-cased-ner
       pt: monilouise/ner_news_portuguese
     pos:

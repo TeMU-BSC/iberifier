@@ -54,7 +54,7 @@ mynews_credentials = yaml.safe_load(open(mynews_cred_path))[
 
 
 def get_arguments(parser):
-    parser.add_argument("--max", default="0", type=str, required=False,
+    parser.add_argument("--max", default=None, type=str, required=False,
                         help="0 returns only the num. of outputs to the query, auto takes into account num. of factchecks")
     parser.add_argument("--type_query", default=None, type=str, required=False,
                         help="Indicates how to build the query. Options are: 'pairs', 'restrictive', 'triples ")
@@ -116,8 +116,9 @@ def get_lists_ids(db,
     aggregate_query = [
         {
             "$match": {
-                "$and": [{
-                    search_mynews_key: {'$exists': False}},
+                "$and": [
+                    {search_mynews_key: {'$exists': False}},
+                    {keywords_key: {'$exists': True}},
                     {'date': {'$lt': limit_day}}
                 ]
             },
@@ -225,7 +226,6 @@ def main():
     api_key = mynews_credentials['public_key']
     api_password = mynews_credentials['password']
 
-    strategy = config_all['keywords_params']['strategy']
     mynews_url = config_all['api_mynews_params']['root_url']
     search_mynews_key = config_all['api_mynews_params']['search_mynews_key']
     mynews_search_params = config_all['api_mynews_params']['search_params']
@@ -242,6 +242,8 @@ def main():
 
     if type_query in ['pairs', 'restrictive']:
         strategy = 'keywords_pairs'
+    else:
+        strategy = 'keywords'
 
     # limit news per
     if args.max:
@@ -283,7 +285,10 @@ def main():
                        days_before=days_before,
                        days_after=days_after
                        )
-        logger.debug(result)
+        logger.info(result)
+
+        print('', result['total'])
+        print(len(result['news']))
 
         if result == {'detail': 'Too many requests, wait 1h'}:
             logger.debug('Rate limit, wait 1 hour.')

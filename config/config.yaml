@@ -11,7 +11,7 @@ api_twitter_params:
     date: null
     # date: '28-09-2022'
     days_before: 7
-    days_after: 1
+    days_after: 7
     output_format: a
 
   rule_params:

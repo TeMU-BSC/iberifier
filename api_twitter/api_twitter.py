@@ -71,13 +71,17 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
             else:
                 start_time = date - \
                     timedelta(days=search_params["days_before"])
+                # Replace the hours and minute to midnight for that day 
+                start_time = start_time.replace(hour=0, minute=0, second=0)
                 end_time = date + timedelta(
                     days=search_params["days_after"], hours=23, minutes=59)
 
+                end_time = end_time.replace(hour=0, minute=0, second=0)
             rule_params["start_time"] = start_time.strftime("%Y-%m-%d %H:%M")
             rule_params["end_time"] = end_time.strftime("%Y-%m-%d %H:%M")
         else:
             pass
+        print(rule_params)
         return rule_params
 
     additional_query = search_params['additional_query']

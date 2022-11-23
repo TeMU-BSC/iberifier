@@ -11,7 +11,7 @@ api_twitter_params:
     date: null
     # date: '28-09-2022'
     days_before: 7
-    days_after: 7
+    days_after: 1
     output_format: a
 
   rule_params:
@@ -114,7 +114,7 @@ mongodb_params:
   tweets: 
     name: tweets
     index:
-      - key: {id: 1} 
+      - key: {tweet_id: 1} 
         params: {unique: true}
       - key: {*search_twitter_key: 1}
       - key: {fact_id: 1}

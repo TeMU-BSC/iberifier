@@ -42,6 +42,7 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 def insert_tweets_mongo(tweet, fact_id, collection):
 
     collection.update_one({"tweet_id": tweet["id"]},
+                          {"text": tweet["text"]},
                           {"date": datetime.strptime(tweet["created_at"][-5], '%Y-%m-%dT%H:%M:%S')},
                           {"$set": {'tweet': tweet, 'fact_id': fact_id}},
                           upsert=True)

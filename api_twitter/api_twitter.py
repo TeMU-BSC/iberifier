@@ -43,10 +43,9 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
 
     def prepare_query(query, additional_query):
         if isinstance(query, list):
-            return "({})".format(" OR ".join(query) +
-                                 ' ' + ' '.join(additional_query))
+            return "({})".format(" OR ".join(query)) + ' ' + ' '.join(additional_query)
         else:
-            return query
+            return query 
 
     def prepare_rule(params):
         for k in params:
@@ -81,7 +80,6 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
             rule_params["end_time"] = end_time.strftime("%Y-%m-%d %H:%M")
         else:
             pass
-        print(rule_params)
         return rule_params
 
     additional_query = search_params['additional_query']

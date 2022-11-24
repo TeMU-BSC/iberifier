@@ -41,8 +41,10 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 
 def insert_tweets_mongo(tweet, fact_id, collection):
 
-    collection.update_one({"tweet_id": tweet["id"]}, {
-                          "$set": {'tweet': tweet, 'fact_id': fact_id}}, upsert=True)
+    collection.update_one({"tweet_id": tweet["id"]},
+                          {"date": datetime.strptime(tweet["created_at"][-5], '%Y-%m-%dT%H:%M:%S')},
+                          {"$set": {'tweet': tweet, 'fact_id': fact_id}},
+                          upsert=True)
 
 
 def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
@@ -146,8 +148,8 @@ def main():
         sources_to_update.append(fact_id)
 
     mydb[col_keywords].update_many(
-        {"fact_id": {"$in": sources_to_update}}, {
-            "$set": {search_twitter_key: datetime.now()}}
+        {"fact_id": {"$in": sources_to_update}},
+        {"$set": {search_twitter_key: datetime.now()}}
     )
 
 

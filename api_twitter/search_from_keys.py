@@ -5,6 +5,7 @@ import tqdm
 import random
 from datetime import datetime, timedelta
 import logging.config
+import pymongo
 
 import yaml
 
@@ -41,8 +42,15 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 
 def insert_tweets_mongo(tweet, fact_id, collection):
 
-    collection.update_one({"tweet_id": tweet["id"]}, {
-                          "$set": {'tweet': tweet, 'fact_id': fact_id}}, upsert=True)
+    try:
+        collection.update_one({"tweet_id": tweet["id"]},
+                              {"text": tweet["text"]},
+                              {"date": datetime.strptime(
+                                  tweet["created_at"][-5], '%Y-%m-%dT%H:%M:%S')},
+                              {"$set": {'tweet': tweet, 'fact_id': fact_id}},
+                              upsert=True)
+    except pymongo.errors.DuplicateKeyError:
+        pass
 
 
 def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
@@ -96,7 +104,6 @@ def main():
     twitter_search_params = config_all['api_twitter_params']['search_params']
     twitter_rule_params = config_all['api_twitter_params']['rule_params']
     twitter_additional_query = twitter_search_params['additional_query']
-    twitter_additional_query = ' '.join(twitter_additional_query)
     days_before = twitter_search_params['days_before']
     days_after = twitter_search_params['days_after']
 
@@ -117,7 +124,7 @@ def main():
 
         i = 0
         while i < len(keyword_search):
-
+            list_key_query = keyword_search[i]
             query = " ".join(keyword_search[i])
             newquery = query
             i += 1
@@ -126,8 +133,9 @@ def main():
             # TODO include a different strategy otherwise the keywords will be the first one only
             # TODO or include that in the keywords_processor script
             while i < len(keyword_search) and len(newquery) < 1024 - (
-                len("() {}".format(twitter_additional_query))
+                len(" ".join(twitter_additional_query))
             ):
+                list_key_query.extend(keyword_search[i])
                 query = newquery
                 newquery += " OR " + " ".join(keyword_search[i])
                 i += 1
@@ -136,9 +144,10 @@ def main():
 
             # tweets = search_twitter(query, post_date)
             # insert_tweets_mongo(tweets, news_id)
-
+            # print(twitter_additional_query)
+            # print(' '.join(twitter_additional_query))
             tweets = search_twitter(
-                twitter_credentials, query, search_params=twitter_search_params, rule_params=twitter_rule_params)
+                twitter_credentials, query=list_key_query, search_params=twitter_search_params, rule_params=twitter_rule_params)
 
             for tweet in tweets:
                 insert_tweets_mongo(tweet, fact_id,  mydb[col_tweets])

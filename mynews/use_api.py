@@ -94,11 +94,13 @@ def query(query_expression, token, max_news, media, claim_date, days_before, day
         ('fromTime', (None, start_int)),
         ('toTime', (None, end_int)),
         ('maxResults', (None, max_news)),
-        ('relevance', (None, 80)),
+        #('relevance', (None, 80))#,
         ('extraField', (None, "Ref"))
     ]
 
     extended = files + publications
+
+    print(files)
 
     response = requests.post(
         'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
@@ -149,6 +151,7 @@ def get_documents(db, col_keywords, keywords_key,
                              search_mynews_key=search_mynews_key,
                              max_claims_per_day=max_claims_per_day,
                              days_before=days_before, days_after=days_after)
+
 
     tqdm_length = len(list_ids)
 

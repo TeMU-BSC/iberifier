@@ -156,11 +156,8 @@ def get_documents(db, col_keywords, keywords_key,
     tqdm_length = len(list_ids)
 
     if max_news_per_claim == 'auto':
-        try:
-            max_news = 100/tqdm_length
-            max_news = int(max_news)
-        except ZeroDivisionError:
-            max_news = 1
+        max_news = 100/tqdm_length
+        max_news = str(int(max_news))
     else:
         max_news = int(max_news_per_claim)
     cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)

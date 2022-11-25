@@ -8,6 +8,8 @@ import tqdm
 from language_detector import detect_language
 from bs4 import BeautifulSoup
 from transformers import pipeline
+from custom_ner import CustomNerPipeline
+from transformers import AutoModelForTokenClassification, AutoTokenizer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
@@ -61,15 +63,23 @@ def select_model(task, lang, models):
     return models[task][lang]
 
 
-def _load_nlp_model(task, lang, model):
+def _load_nlp_model(task, lang, model_path):
     logger.info("Load {} {} model: {}".format(
-        lang, task, model))
-    nlp_model = pipeline(
-        ("token-classification" if task == "pos" else task),
-        model=model,
-        tokenizer=model,
-        aggregation_strategy="max",
-    )
+        lang, task, model_path))
+    if task == 'pos':
+        nlp_model = pipeline(
+            "token-classification",
+            model=model_path,
+            tokenizer=model_path,
+            aggregation_strategy="max",
+        )
+    else:
+        model = AutoModelForTokenClassification.from_pretrained(model_path)
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        nlp_model = CustomNerPipeline(
+            model=model,
+            tokenizer=tokenizer,
+        )
     return nlp_model
 
 
@@ -156,7 +166,7 @@ def get_documents(db, col_factcheck, col_keyword, field):
 
     for record in tqdm.tqdm(cursor, total=tqdm_length):
         yield _getting_info(
-            record, text_field=field)
+        record, text_field=field)
     cursor.close()
 
 def detect_lang(txt):

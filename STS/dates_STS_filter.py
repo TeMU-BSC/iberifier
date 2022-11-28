@@ -49,6 +49,9 @@ def get_arguments(parser):
         required=False,
         help="Up and down timeframe from the day of the claim.",
     )
+    parser.add_argument("--period", default=None, required=False, type=str, help="Should give the dates to look for claims, but it's not implemented.")
+    parser.add_argument("--collection", default="maldita", required=False, type=str,
+                        help="Collection to look from, should be maldita or google.")
     return parser
 
 
@@ -56,7 +59,7 @@ def select_messages_timeframe(time, messages, timeframe, source):
     # time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S%z")
     x = time - timedelta(days=timeframe)
     y = time + timedelta(days=timeframe)
-    selection = list(messages.find({source["date"]: {"$gt": x, "$lt": y}}))
+    selection = list(messages.find({source["date"]: {"$gt": x, "$lt": y}})) # also filter by related to
     return selection
 
 
@@ -95,7 +98,6 @@ def similar_messages(c_vec, m_vecs, threshold):
     return similar_messages
 
 
-# TODO: get the right fields for each data source. Missing: menéame
 # TODO: in some cases we might also be interested in the body
 def get_source_keys(source):
     """Defines the right fields for each source"""
@@ -103,10 +105,7 @@ def get_source_keys(source):
     if source == "telegram":
         source_keys["date"] = "date"
         source_keys["text"] = "message"
-    elif source == "twitter_test":
-        source_keys["date"] = "date"
-        source_keys["text"] = "text"
-    elif source == "twitter_test2":
+    elif source == "tweets":
         source_keys["date"] = "date"
         source_keys["text"] = "text"
     elif source == "lusa":
@@ -114,9 +113,29 @@ def get_source_keys(source):
         source_keys["text"] = "headline"
     elif source == "mynews":
         source_keys["date"] = "date"
-        source_keys["text"] = "headline"
+        source_keys["text"] = "Title"
     return source_keys
 
+def get_messages(db, claim, args):
+    if args.source == "telegram":
+        db_telegram = mongo_utils.get_mongo_db("telegram_observer")
+        collection_messages = db_telegram["messages"]
+        source_keys = get_source_keys(args.source)
+    else:
+        collection_messages = db[args.source]
+        if len(list(collection_messages.find())) == 0:
+            print(
+                "This data does not exist, we currently have the collections:", db.list_collection_names()
+            )
+            return
+        else:
+            source_keys = get_source_keys(args.source)
+
+    messages_in_frame = select_messages_timeframe(
+        claim["date"], collection_messages, args.timeframe, source_keys
+    )
+    print(len(messages_in_frame))
+    return messages_in_frame, source_keys
 
 def main():
     parser = argparse.ArgumentParser()
@@ -129,50 +148,36 @@ def main():
     db_iberifier = mongo_utils.get_mongo_db()
 
     # look for one claim in the fact-check database
-    collection_maldita = db_iberifier["maldita"]
+    collection = db_iberifier[args.collection] # google or maldita
     if args.claim:
-        claim = collection_maldita.find_one({"_id": ObjectId(args.claim)})
+        claim = collection.find_one({"_id": ObjectId(args.claim)})
+    elif args.period:
+        print('not implemented')
+        exit()
+        claim = collection.find_one(
+            {"date": {"$gt": datetime(2021, 11, 1), "$lt": datetime(2021, 11, 30)}} # not implemented yet
+        )
     else:
-        claim = collection_maldita.find_one(
-            {"date": {"$gt": datetime(2021, 11, 1), "$lt": datetime(2021, 11, 30)}}
-        )  # I can't check Lusa until maldita has a datetime type
+        claim = collection.find_one()
     print(claim)
 
     # get all the messages from the source
-    if args.source == "telegram":
-        db_telegram = mongo_utils.get_mongo_db("telegram_observer")
-        collection_messages = db_telegram["messages"]
-        source_keys = get_source_keys(args.source)
-    else:
-        collection_messages = db_iberifier[args.source]
-        if len(list(collection_messages.find())) == 0:
-            print(
-                "This data does not exist, we currently have the collections:"
-            )  # TODO: show iberifier collections
-            exit()
-        else:
-            source_keys = get_source_keys(args.source)
-
-    # TODO: all sources should have a date field that is in datetime format. Missing: google
-    # get the messages in the time frame surrounding the claim
-    messages_in_frame = select_messages_timeframe(
-        claim["date"], collection_messages, args.timeframe, source_keys
-    )
-    print(len(messages_in_frame))
-    # for i in messages_in_frame:
-    #    print(i)
-
+    messages_in_frame, source_keys = get_messages(db_iberifier, claim, args)
+    #for i in messages_in_frame:
+    #   print(i)
+    #exit()
     # evaluate how close the messages are and assess the threshold of similarity
     model = SentenceTransformer("AIDA-UPM/mstsb-paraphrase-multilingual-mpnet-base-v2")
     c_vec = vectorize_claim(claim, model)
     m_vecs = vectorize_messages(messages_in_frame, model, source_keys)
     threshold = args.threshold
+    print(threshold)
     relevant_indices = similar_messages(c_vec, m_vecs, threshold)
     print(len(relevant_indices))
 
     for i, m in enumerate(messages_in_frame):
         if i in relevant_indices:
-            print(m[source_keys["text"]])
+            print(m[source_keys["text"]], m["_id"])
 
 
 if __name__ == "__main__":

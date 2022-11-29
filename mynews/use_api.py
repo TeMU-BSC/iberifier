@@ -115,7 +115,7 @@ def get_lists_ids(db,
                   max_claims_per_day,
                   days_before,
                   days_after):
-    limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after)
+    limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after+1)
     aggregate_query = [
         {
             "$match": {

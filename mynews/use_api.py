@@ -94,11 +94,13 @@ def query(query_expression, token, max_news, media, claim_date, days_before, day
         ('fromTime', (None, start_int)),
         ('toTime', (None, end_int)),
         ('maxResults', (None, max_news)),
-        ('relevance', (None, 80)),
+        #('relevance', (None, 80))#,
         ('extraField', (None, "Ref"))
     ]
 
     extended = files + publications
+
+    print(files)
 
     response = requests.post(
         'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
@@ -150,14 +152,12 @@ def get_documents(db, col_keywords, keywords_key,
                              max_claims_per_day=max_claims_per_day,
                              days_before=days_before, days_after=days_after)
 
+
     tqdm_length = len(list_ids)
 
     if max_news_per_claim == 'auto':
-        try:
-            max_news = 100/tqdm_length
-            max_news = int(max_news)
-        except ZeroDivisionError:
-            max_news = 1
+        max_news = 100/tqdm_length
+        max_news = str(int(max_news))
     else:
         max_news = int(max_news_per_claim)
     cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)

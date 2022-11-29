@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+import pymongo
 from pymongo import IndexModel, ASCENDING, DESCENDING, TEXT
 
 import yaml
@@ -50,10 +51,16 @@ if __name__ == "__main__":
                             elif i['key'][k] == 'text':
                                 i['key'][k] = TEXT
 
-                        mydb[col_name].create_index(
-                            i['key'].items(), **i['params'])
-                        logger.info(
-                            f"Done index on {i['key']} with params {i['params']}")
+                        try:
+                            mydb[col_name].create_index(
+                                i['key'].items(), **i['params'])
+                            logger.info(
+                                f"Done index on {i['key']} with params {i['params']}")
+                        except pymongo.errors.DuplicateKeyError as e:
+                            print(e)
                     except KeyError:
-                        logger.info(f"Done index on {i['key']} without params")
-                        mydb[col_name].create_index(i['key'].items())
+                        try:
+                            logger.info(f"Done index on {i['key']} without params")
+                            mydb[col_name].create_index(i['key'].items())
+                        except pymongo.errors.DuplicateKeyError as e:
+                            print(e)

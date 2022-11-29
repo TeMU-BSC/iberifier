@@ -44,7 +44,7 @@ class WrongTransitionError(Exception):
         super().__init__(self, message)
 
 
-class EmtyTokenError(Exception):
+class EmptyTokenError(Exception):
     """
     Exception raised when something that is not "BIOES" comes as a transition.
     """
@@ -98,7 +98,8 @@ class FiniteStateMachine:
             return sum(l) / len(l)
 
         if aggregation_strategy is None:
-            aggregation_strategy = lambda tb, eb, sc: ("".join(tb), 'O' if not eb else most_common(eb), sum(sc) / len(sc))
+            def aggregation_strategy(tb, eb, sc):
+                return ("".join(tb), 'O' if not eb else most_common(eb), sum(sc) / len(sc))
 
         self.aggregation_strategy = aggregation_strategy
 
@@ -176,7 +177,6 @@ class CustomNerPipeline:
             _type = entity["entity"].split('-', 1)[:1][0]
             text_buffer.append(entity["word"])
             score_buffer.append(entity["score"])
-            entity_buffer.append(entity["entity"])
             if span_start is None and entity["span"] is not None: span_start = entity["span"].start
             if entity["span"] is not None: span_end = entity["span"].end
             if _type == 'B': newState = "I"
@@ -198,7 +198,6 @@ class CustomNerPipeline:
             _type = entity["entity"].split('-', 1)[:1][0]
             text_buffer.append(entity["word"])
             score_buffer.append(entity["score"])
-            entity_buffer.append(entity["entity"])
             if span_start is None and entity["span"] is not None: span_start = entity["span"].start
             if entity["span"] is not None: span_end = entity["span"].end
             if entity["entity"] != 'O':
@@ -214,7 +213,6 @@ class CustomNerPipeline:
             _type = entity["entity"].split('-', 1)[:1][0]
             text_buffer.append(entity["word"])
             score_buffer.append(entity["score"])
-            entity_buffer.append(entity["entity"])
             if span_start is None and entity["span"] is not None: span_start = entity["span"].start
             if entity["span"] is not None: span_end = entity["span"].end
             if _type == 'B': newState = "E"
@@ -236,7 +234,6 @@ class CustomNerPipeline:
             _type = entity["entity"].split('-', 1)[:1][0]
             text_buffer.append(entity["word"])
             score_buffer.append(entity["score"])
-            entity_buffer.append(entity["entity"])
             if span_start is None and entity["span"] is not None: span_start = entity["span"].start
             if entity["span"] is not None: span_end = entity["span"].end
             if _type == 'B': newState = "B"
@@ -254,11 +251,10 @@ class CustomNerPipeline:
             """
             handler that given an entity and buffers returns new state and new buffers 
             """
-            if entity["word"] == '': raise EmtyTokenError 
+            if entity["word"] == '': raise EmptyTokenError 
             _type = entity["entity"].split('-', 1)[:1][0]
             text_buffer.append(entity["word"])
             score_buffer.append(entity["score"])
-            entity_buffer.append(entity["entity"])
             if span_start is None and entity["span"] is not None: span_start = entity["span"].start
             if entity["span"] is not None: span_end = entity["span"].end
             if entity["entity"] != 'O':
@@ -410,13 +406,19 @@ class CustomNerPipeline:
         self.JoinEntitites.add_aggregation_strategy()
 
 
+    # def BIOLU2BIOES(self, entity):
+    #     if entity[0] == "L": return "E"+entity[1:]
+    #     if entity[0] == "U": return "S"+entity[1:]
+    #     else: return entity
+
+
     def __call__(self, text):
         """ 
         Given a text return the entitites
         """
         batch_encoded = self.tokenizer(text, return_tensors="pt")
         token_ids = batch_encoded["input_ids"]
-        spans = [batch_encoded.token_to_chars(idx) for idx in range(len(token_ids[0]))]
+        spans = [None] + [batch_encoded.token_to_chars(idx) for idx in range(1, len(token_ids[0])-1)] + [None]
         output_logits = self.model(token_ids)["logits"]
         entities = []
         for token, logits, span in zip(token_ids[0], output_logits[0], spans):
@@ -430,7 +432,11 @@ class CustomNerPipeline:
                       "score": self.softmax(logits)[label_idx],
                       "span": span}
             entities.append(entity)
+#         print("model entitites:")
+#         pprint(entities)
         joined_words_entities = self.JoinWords.run(entities)
+#         print("joined words:")
+#         pprint(joined_words_entities)
         out_entities = self.JoinEntitites.run(joined_words_entities)
         return out_entities
 
@@ -443,6 +449,8 @@ if __name__ == "__main__":
 
     model = AutoModelForTokenClassification.from_pretrained("PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus")
     tokenizer = AutoTokenizer.from_pretrained("PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus")
+#     model = AutoModelForTokenClassification.from_pretrained("monilouise/ner_news_portuguese")
+#     tokenizer = AutoTokenizer.from_pretrained("monilouise/ner_news_portuguese")
 
     ner = CustomNerPipeline(model, tokenizer)
 

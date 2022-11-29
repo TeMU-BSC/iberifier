@@ -42,19 +42,19 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 
 def insert_tweets_mongo(tweet, fact_id, collection):
 
-    try:
-        collection.update_one({"tweet_id": tweet["id"]},
-                              {"text": tweet["text"]},
-                              {"date": datetime.strptime(
-                                  tweet["created_at"][-5], '%Y-%m-%dT%H:%M:%S')},
-                              {"$set": {'tweet': tweet, 'fact_id': fact_id}},
-                              upsert=True)
-    except pymongo.errors.DuplicateKeyError:
-        pass
+    collection.update_one({"tweet_id": tweet["id"]},
+                            {
+                              "$set": {'tweet': tweet,
+                                    'text': tweet['text'],
+                                    "date": datetime.strptime(tweet["created_at"].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                                    },
+                              "$push": {'fact_id': fact_id}
+                            },
+                          upsert=True)
 
 
 def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
-    limit_day = datetime.today() - timedelta(days=days_after)
+    limit_day = datetime.today() - timedelta(days=days_after+1)
     aggregate_query = [
         {
             "$match": {
@@ -107,7 +107,7 @@ def main():
     days_before = twitter_search_params['days_before']
     days_after = twitter_search_params['days_after']
 
-    sources_to_update = []
+    # sources_to_update = []
 
     # get only the documents who were not searched for
     logger.info("Parsing the different claims")
@@ -140,24 +140,17 @@ def main():
                 newquery += " OR " + " ".join(keyword_search[i])
                 i += 1
 
-            # query = "(" + query + ") -is:retweet"
-
-            # tweets = search_twitter(query, post_date)
-            # insert_tweets_mongo(tweets, news_id)
-            # print(twitter_additional_query)
-            # print(' '.join(twitter_additional_query))
             tweets = search_twitter(
                 twitter_credentials, query=list_key_query, search_params=twitter_search_params, rule_params=twitter_rule_params)
 
             for tweet in tweets:
                 insert_tweets_mongo(tweet, fact_id,  mydb[col_tweets])
 
-        sources_to_update.append(fact_id)
+        # sources_to_update.append(fact_id)
 
-    mydb[col_keywords].update_many(
-        {"fact_id": {"$in": sources_to_update}}, {
-            "$set": {search_twitter_key: datetime.now()}}
-    )
+        mydb[col_keywords].update_one(
+            {"fact_id": fact_id}, {
+                "$set": {search_twitter_key: datetime.now()}})
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ api_twitter_params:
     results_per_call: 500
     since_id: null
     # since_id: '1575199451903594497'
-    expansions: ['geo.place_id','attachments.media_keys', 'referenced_tweets.id', 'author_id']
+    expansions: ['attachments.media_keys', 'referenced_tweets.id', 'author_id']
     tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
                 "referenced_tweets", "created_at", "geo", "id", "lang", "public_metrics", "text"]
     user_fields: ['username', 'created_at', 'location']

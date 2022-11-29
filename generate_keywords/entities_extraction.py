@@ -53,7 +53,10 @@ def get_words_from_model(model, text):
     for ent in model(text):
         word = cleaning_word(ent['word'])
         if word:
-            return_entity.setdefault(ent["entity_group"], set()).add(word)
+            try:
+                return_entity.setdefault(ent["entity_group"], set()).add(word)
+            except KeyError:  # With custom_ner the key for entity group is different than standart models
+                return_entity.setdefault(ent["entity"], set()).add(word)
     for result in return_entity:
         return_entity[result] = list(return_entity[result])
     return return_entity

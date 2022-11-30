@@ -36,16 +36,21 @@ def _search_twitter(rule, max_tweets, output_format, twitter_credentials):
     results = rs.stream()
 
     for i in results:
-        yield i
+        try:
+            yield i
+        except KeyError:  # Sometime the searchtweets lib crash because it cannot find the right key in the max_tweets
+            pass
 
 
 def search_twitter(twitter_credentials, query, search_params, rule_params):
 
     def prepare_query(query, additional_query):
-        if isinstance(query, list):
-            return "({})".format(" OR ".join(query)) + ' ' + ' '.join(additional_query)
-        else:
-            return query 
+        # CAREFUL: The additional query need to be outside the () from the keyword query
+        # https://twittercommunity.com/t/premium-account-is-retweet-not-working/128064/14
+        return ' '.join(additional_query) + ' (' + query + ')'     # if isinstance(query, list):
+        #     return "({})".format(" OR ".join(query)) + ' ' + ' '.join(additional_query)
+        # else:
+        #     return query 
 
     def prepare_rule(params):
         for k in params:
@@ -89,11 +94,12 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
     rule_params = prepare_time(search_params, rule_params)
     rule_params = prepare_rule(rule_params)
     rule_params['query'] = prepare_query(query, additional_query)
+    print(rule_params['query'])
 
     rule = gen_request_parameters(**rule_params)
     return _search_twitter(
-        rule,
-        max_tweets,
+        rule=rule,
+        max_tweets=max_tweets,
         output_format=output_format,
         twitter_credentials=twitter_credentials,
     )

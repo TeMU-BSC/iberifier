@@ -11,8 +11,8 @@ import yaml
 
 from api_twitter import search_twitter
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from mongo_utils import mongo_utils
 
+from mongo_utils import mongo_utils
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +43,14 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 def insert_tweets_mongo(tweet, fact_id, collection):
 
     collection.update_one({"tweet_id": tweet["id"]},
-                            {
-                              "$set": {'tweet': tweet,
-                                    'text': tweet['text'],
-                                    "date": datetime.strptime(tweet["created_at"].split('.')[0], '%Y-%m-%dT%H:%M:%S')
-                                    },
+                          {
+        "$set": {'tweet': tweet,
+                 'text': tweet['text'],
+                 "date": datetime.strptime(tweet["created_at"].split('.')[0], '%Y-%m-%dT%H:%M:%S')
+                 },
                               "$push": {'fact_id': fact_id}
-                            },
-                          upsert=True)
+    },
+        upsert=True)
 
 
 def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims_per_day, days_before, days_after):
@@ -124,8 +124,7 @@ def main():
 
         i = 0
         while i < len(keyword_search):
-            list_key_query = keyword_search[i]
-            query = " ".join(keyword_search[i])
+            query = "({})".format(' '.join(keyword_search[i]))
             newquery = query
             i += 1
             # Add bigrams to query until it reaches the 1024 query limit
@@ -135,18 +134,16 @@ def main():
             while i < len(keyword_search) and len(newquery) < 1024 - (
                 len(" ".join(twitter_additional_query))
             ):
-                list_key_query.extend(keyword_search[i])
-                query = newquery
-                newquery += " OR " + " ".join(keyword_search[i])
+                # list_key_query.extend(keyword_search[i])
+                # query = newquery
+                newquery += " OR " + "({})".format(' '.join(keyword_search[i]))
                 i += 1
 
             tweets = search_twitter(
-                twitter_credentials, query=list_key_query, search_params=twitter_search_params, rule_params=twitter_rule_params)
+                twitter_credentials, query=newquery, search_params=twitter_search_params, rule_params=twitter_rule_params)
 
             for tweet in tweets:
                 insert_tweets_mongo(tweet, fact_id,  mydb[col_tweets])
-
-        # sources_to_update.append(fact_id)
 
         mydb[col_keywords].update_one(
             {"fact_id": fact_id}, {

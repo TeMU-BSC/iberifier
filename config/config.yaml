@@ -20,7 +20,7 @@ api_twitter_params:
     # since_id: '1575199451903594497'
     expansions: ['attachments.media_keys', 'referenced_tweets.id', 'author_id']
     tweet_fields: ["author_id", "conversation_id", "in_reply_to_user_id", 'attachments',
-                "referenced_tweets", "created_at","id", "lang", "public_metrics", "text"]
+                "referenced_tweets", "created_at", "id", "lang", "public_metrics", "text"]
     user_fields: ['username', 'created_at', 'location']
     media_fields: ['type', 'url']
     place_fields: ['country', 'full_name']

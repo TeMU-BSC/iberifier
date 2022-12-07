@@ -5,6 +5,7 @@ import tqdm
 import random
 from datetime import datetime, timedelta
 import logging.config
+from itertools import combinations
 import pymongo
 
 import yaml
@@ -122,28 +123,24 @@ def main():
         twitter_search_params['date'] = post_date_str
         keyword_search = doc[strategy]
 
-        i = 0
-        while i < len(keyword_search):
-            query = "({})".format(' '.join(keyword_search[i]))
-            newquery = query
-            i += 1
-            # Add bigrams to query until it reaches the 1024 query limit
-            # or all bigrams are added
-            # TODO include a different strategy otherwise the keywords will be the first one only
-            # TODO or include that in the keywords_processor script
-            while i < len(keyword_search) and len(newquery) < 1024 - (
-                len(" ".join(twitter_additional_query))
-            ):
-                # list_key_query.extend(keyword_search[i])
-                # query = newquery
-                newquery += " OR " + "({})".format(' '.join(keyword_search[i]))
-                i += 1
 
-            tweets = search_twitter(
-                twitter_credentials, query=newquery, search_params=twitter_search_params, rule_params=twitter_rule_params)
+        query = ''
+        comb = combinations(keyword_search, 3)
+        for i,c in enumerate(comb):
+            if i == 0:
+                query += "({})".format(' '.join(c))
+            else:
+                newquery = "({})".format(' '.join(c))
+                if len(query) < 1024 - (len(" ".join(newquery))):
+                    query += " OR " + newquery
+                else:
+                    break
 
-            for tweet in tweets:
-                insert_tweets_mongo(tweet, fact_id,  mydb[col_tweets])
+        tweets = search_twitter(
+                twitter_credentials, query=query, search_params=twitter_search_params, rule_params=twitter_rule_params)
+
+        for tweet in tweets:
+            insert_tweets_mongo(tweet, fact_id,  mydb[col_tweets])
 
         mydb[col_keywords].update_one(
             {"fact_id": fact_id}, {

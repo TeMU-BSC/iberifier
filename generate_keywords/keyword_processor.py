@@ -80,9 +80,10 @@ def getting_records(db, collection, rerun):
     #     today = datetime.today()
     #     days_ago = today - timedelta(days=args.time_window)
     #     search["date"] = {'$gt': days_ago, '$lt': today}
-
     cursor = db[collection].find(search, batch_size=1)
+    #print('emtpy cursor?')
     for record in cursor:
+        #print('no')
         yield record
 
 
@@ -162,9 +163,62 @@ def strategy_one(db, record, max_words, threshold):
 
     return keywords, keywords_pairs
 
+def strategy_two(record, max_words):
+    '''
+    This strategy looks for NER in claim and NER in review. Then, if less than 6 keywords, it looks for the frist NOUN of the claim,
+    the first verb of the claim, and the first adjective of the claim until it has 6 keywords.
+    '''
+    print(record['claim'])
+
+    keywords = list()
+    for key in ['ner_claim', 'ner_review']:
+        try:
+            for entity in record[key]:
+                keywords.append(record[key][entity][0])
+        except KeyError:
+            pass
+
+    i = 0
+    while len(keywords) < max_words:
+
+        key = 'pos_claim'
+        try:
+            keywords.append(record[key]['NOUN'][i])
+        except (KeyError, IndexError):
+            pass
+        try:
+            keywords.append(record[key]['ADJ'][i])
+        except (KeyError, IndexError):
+            pass
+        try:
+            keywords.append(record[key]['VERB'][i]) # TODO: delete non-expresive verbs
+        except (KeyError, IndexError):
+            pass
+        i += 1
+
+        keywords = remove_nonalpha(keywords)
+        keywords = list(set(keywords))
+        if i == 3:
+            break
+
+    if len(keywords) > max_words:
+        keywords = keywords[:max_words]
+    #else:
+    #    keywords = content_ner
+    print(keywords)
+
+    keywords.sort()
+
+    keywords_pairs = [] # we are not going to use this in the end
+    # if len(keywords) == 0:
+    #     logger.debug(f"{record['_id']}empty example")
+    # else:
+    #     keywords_pairs = create_and_filter_pairs(db, keywords, threshold)
+
+    return keywords, keywords_pairs
+
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
@@ -196,8 +250,10 @@ def main():
 
     for record in getting_records(db, col_keywords, rerun):
 
-        keywords, keywords_pairs = strategy_one(
-            db, record, max_words=max_words, threshold=co_threshold)
+        #keywords, keywords_pairs = strategy_one(
+        #    db, record, max_words=max_words, threshold=co_threshold)
+        keywords, keywords_pairs = strategy_two(
+            record, max_words=max_words)
 
         update_fact(
             db,

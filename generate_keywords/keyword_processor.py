@@ -106,7 +106,7 @@ def create_and_filter_pairs(db, keywords, threshold):
 def remove_nonalpha(strings):
     new = []
     for s in strings:
-        new.append(''.join(x for x in s if x.isalpha()))
+        new.append(''.join(x for x in s if x.isalpha() or x==' '))
     new = list(set([n for n in new if n != '']))
     return new
 
@@ -174,9 +174,17 @@ def strategy_two(record, max_words):
     for key in ['ner_claim', 'ner_review']:
         try:
             for entity in record[key]:
-                keywords.append(record[key][entity][0])
+                keywords.extend(record[key][entity])
         except KeyError:
             pass
+    keywords = list(set(keywords))
+
+    if len(keywords) < max_words:
+        try:
+            keywords.extend(record[key]['PROPN'])
+        except KeyError:
+            pass
+        keywords = list(set(keywords))
 
     i = 0
     while len(keywords) < max_words:
@@ -197,12 +205,13 @@ def strategy_two(record, max_words):
         i += 1
 
         keywords = remove_nonalpha(keywords)
+        keywords = [key for key in keywords if len(key) > 2]
         keywords = list(set(keywords))
         if i == 3:
             break
 
-    if len(keywords) > max_words:
-        keywords = keywords[:max_words]
+    #if len(keywords) > max_words:
+    #    keywords = keywords[:max_words]
     #else:
     #    keywords = content_ner
     print(keywords)

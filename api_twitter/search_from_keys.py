@@ -122,10 +122,15 @@ def main():
         # post_date = datetime.strptime(post_date_str, "%Y-%m-%dT%H:%M:%S%z")
         twitter_search_params['date'] = post_date_str
         keyword_search = doc[strategy]
+        size_keywords = 3
+
 
 
         query = ''
-        comb = combinations(keyword_search, 3)
+        if len(keyword_search) >= size_keywords:
+            comb = combinations(keyword_search, 3)
+        else:
+            comb = [keyword_search]
         for i,c in enumerate(comb):
             if i == 0:
                 query += "({})".format(' '.join(c))

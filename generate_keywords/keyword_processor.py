@@ -163,6 +163,9 @@ def strategy_one(db, record, max_words, threshold):
 
     return keywords, keywords_pairs
 
+def remove_short(tokens):
+    return [t for t in tokens if len(t) > 1]
+
 def strategy_two(record, max_words):
     '''
     This strategy looks for NER in claim and NER in review. Then, if less than 6 keywords, it looks for the frist NOUN of the claim,
@@ -234,7 +237,7 @@ def strategy_two(record, max_words):
         keywords = list(set(keywords))
         if i == 3:
             break
-
+    keywords = remove_short(keywords)
     #if len(keywords) > max_words:
     #    keywords = keywords[:max_words]
     #else:

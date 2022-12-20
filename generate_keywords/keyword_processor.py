@@ -168,7 +168,7 @@ def strategy_two(record, max_words):
     This strategy looks for NER in claim and NER in review. Then, if less than 6 keywords, it looks for the frist NOUN of the claim,
     the first verb of the claim, and the first adjective of the claim until it has 6 keywords.
     '''
-    print(record['claim'])
+    #print(record)
 
     keywords = list()
     for key in ['ner_claim', 'ner_review']:

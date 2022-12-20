@@ -49,17 +49,23 @@ def get_words_from_model(model, text):
         return word.strip().lower().translate(str.maketrans("", "", string.punctuation))
 
     return_entity = dict()
-
-    for ent in model(text):
-        word = cleaning_word(ent['word'])
-        if word:
-            try:
-                return_entity.setdefault(ent["entity_group"], set()).add(word)
-            except KeyError:  # With custom_ner the key for entity group is different than standart models
-                return_entity.setdefault(ent["entity"], set()).add(word)
-    for result in return_entity:
-        return_entity[result] = list(return_entity[result])
-    return return_entity
+    #print(text)
+    if text and len(text) < 500:
+        try:
+            for ent in model(text):
+                word = cleaning_word(ent['word'])
+                if word:
+                    try:
+                        return_entity.setdefault(ent["entity_group"], set()).add(word)
+                    except KeyError:  # With custom_ner the key for entity group is different than standart models
+                        return_entity.setdefault(ent["entity"], set()).add(word)
+            for result in return_entity:
+                return_entity[result] = list(return_entity[result])
+            return return_entity
+        except TypeError:
+            print('Type error')
+            print(return_entity)
+            return return_entity
 
 
 def select_model(task, lang, models):

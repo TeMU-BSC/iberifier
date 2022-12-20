@@ -59,8 +59,9 @@ def get_lists_ids(db, col_keywords, keywords_key, search_twitter_key, max_claims
     aggregate_query = [
         {
             "$match": {
-                "$and": [{
-                    search_twitter_key: {'$exists': False}},
+                "$and": [
+                    {search_twitter_key: {'$exists': False}},
+                    {keywords_key: {'$exists': True}},
                     {'date': {'$lt': limit_day}}
                 ]
             },

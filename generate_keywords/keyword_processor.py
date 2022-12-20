@@ -178,18 +178,43 @@ def strategy_two(record, max_words):
         except KeyError:
             pass
     keywords = list(set(keywords))
-
+    print(keywords)
     if len(keywords) < max_words:
         try:
             keywords.extend(record[key]['PROPN'])
         except KeyError:
             pass
         keywords = list(set(keywords))
+    print(keywords)
 
     i = 0
     while len(keywords) < max_words:
 
         key = 'pos_claim'
+        try:
+            keywords.append(record[key]['NOUN'][i])
+        except (KeyError, IndexError):
+            pass
+        try:
+            keywords.append(record[key]['ADJ'][i])
+        except (KeyError, IndexError):
+            pass
+        try:
+            keywords.append(record[key]['VERB'][i]) # TODO: delete non-expresive verbs
+        except (KeyError, IndexError):
+            pass
+        i += 1
+
+        keywords = remove_nonalpha(keywords)
+        keywords = [key for key in keywords if len(key) > 2]
+        keywords = list(set(keywords))
+        if i == 3:
+            break
+
+    i = 0
+    while len(keywords) < max_words:
+
+        key = 'pos_review'
         try:
             keywords.append(record[key]['NOUN'][i])
         except (KeyError, IndexError):

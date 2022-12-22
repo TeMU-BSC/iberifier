@@ -100,7 +100,7 @@ def query(query_expression, token, max_news, media, claim_date, days_before, day
 
     extended = files + publications
 
-    print(files)
+    #print(files)
 
     response = requests.post(
         'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
@@ -215,8 +215,7 @@ def write_query(keywords, keywords_limit=4, type_strategy='pairs'):
             string = '(' + c[0] + ' AND ' + c[1] + ' AND ' + c[2] + ') OR '
             query += string
 
-    # Is it to be linked to the keywords limit too?
-    query = query[:-keywords_limit]
+    query = query[:-4]
     return query
 
 

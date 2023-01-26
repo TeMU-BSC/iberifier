@@ -2,75 +2,70 @@ version: 1
 disable_existing_loggers: no
 formatters:
   simple:
-    format: '%(asctime)s::%(levelname)s::%(name)s::%(message)s'
+    format: '%(asctime)s::%(levelname)s::%(name)s::%(module)s::%(funcName)s::%(message)s'
+    datefmt: "%Y-%m-%d %H:%M:%S"
 handlers:
   console:
     class: logging.StreamHandler
     level: DEBUG
     formatter: simple
     stream: ext://sys.stdout
-  root_file_handler:
+
+  info_file_handler:
+      class: logging.handlers.RotatingFileHandler
+      level: INFO
+      formatter: simple
+      filename: ./logs/info.log
+      maxBytes: 10485760 # 10MB
+      backupCount: 20
+      encoding: utf8
+
+  error_file_handler:
+      class: logging.handlers.RotatingFileHandler
+      level: ERROR
+      formatter: simple
+      filename: ./logs/errors.log
+      maxBytes: 10485760 # 10MB
+      backupCount: 20
+      encoding: utf8
+
+  debug_file_handler:
       class: logging.handlers.RotatingFileHandler
       level: DEBUG
       formatter: simple
-      filename: ./logs/logs.log
+      filename: ./logs/debug.log
       maxBytes: 10485760 # 10MB
-      backupCount: 50
+      backupCount: 20
       encoding: utf8
- # info_file_handler:
-  #     class: logging.handlers.RotatingFileHandler
-  #     level: INFO
-  #     formatter: simple
-  #     filename: ./logs/info.log
-  #     maxBytes: 10485760 # 10MB
-  #     backupCount: 20
-  #     encoding: utf8
 
-  # error_file_handler:
-  #     class: logging.handlers.RotatingFileHandler
-  #     level: ERROR
-  #     formatter: simple
-  #     filename: ./logs/errors.log
-  #     maxBytes: 10485760 # 10MB
-  #     backupCount: 20
-  #     encoding: utf8
+  critical_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: CRITICAL
+        formatter: simple
+        filename: ./logs/critical.log
+        maxBytes: 10485760 # 10MB
+        backupCount: 20
+        encoding: utf8
 
-  # debug_file_handler:
-  #     class: logging.handlers.RotatingFileHandler
-  #     level: DEBUG
-  #     formatter: simple
-  #     filename: ./logs/debug.log
-  #     maxBytes: 10485760 # 10MB
-  #     backupCount: 20
-  #     encoding: utf8
-
-  # critical_file_handler:
-  #       class: logging.handlers.RotatingFileHandler
-  #       level: CRITICAL
-  #       formatter: simple
-  #       filename: ./logs/critical.log
-  #       maxBytes: 10485760 # 10MB
-  #       backupCount: 20
-  #       encoding: utf8
-
-  # warn_file_handler:
-  #     class: logging.handlers.RotatingFileHandler
-  #     level: WARN
-  #     formatter: simple
-  #     filename: ./logs/warn.log
-  #     maxBytes: 10485760 # 10MB
-  #     backupCount: 20
-  #     encoding: utf8
+  warn_file_handler:
+      class: logging.handlers.RotatingFileHandler
+      level: WARN
+      formatter: simple
+      filename: ./logs/warn.log
+      maxBytes: 10485760 # 10MB
+      backupCount: 20
+      encoding: utf8
 root:
   level: DEBUG
-  handlers: [console, root_file_handler]
+  handlers: [console]
+  propagate: yes
 
 loggers:
   dev:
     level: DEBUG
-    # handlers: [console, info_file_handler, error_file_handler, debug_file_handler, critical_file_handler, warn_file_handler]
-    propagate: no
+    handlers: [console, info_file_handler, error_file_handler, debug_file_handler, critical_file_handler, warn_file_handler]
+    propagate: yes
   prod:
     level: INFO
-  #   handlers: [console, info_file_handler, error_file_handler, debug_file_handler]
-    propagate: no
+    handlers: [console, info_file_handler, error_file_handler, debug_file_handler, critical_file_handler, warn_file_handler]
+    propagate: yes

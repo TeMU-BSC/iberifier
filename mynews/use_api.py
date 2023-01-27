@@ -63,6 +63,8 @@ def get_arguments(parser):
                         help="the tokens to query, it does not make sense if --auto_query is selected")
     parser.add_argument("--topic", default=None, type=str, required=False,
                         help='the topic of the news, it does not make sense if --auto_query is selected')
+    parser.add_argument("--day", default=None, type=str, required=False,
+                        help='query the claims from a single day')
     return parser
 
 
@@ -114,25 +116,49 @@ def get_lists_ids(db,
                   search_mynews_key,
                   max_claims_per_day,
                   days_before,
-                  days_after):
-    limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after+1)
-    aggregate_query = [
-        {
-            "$match": {
-                "$and": [
-                    {search_mynews_key: {'$exists': False}},
-                    {keywords_key: {'$exists': True}},
-                    {'date': {'$lt': limit_day}}
-                ]
-            },
+                  days_after,
+                  historical = False,
+                  day = None):
+    if not historical:
+        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after+1)
+        aggregate_query = [
+            {
+                "$match": {
+                    "$and": [
+                        {search_mynews_key: {'$exists': False}},
+                        {keywords_key: {'$exists': True}},
+                        {'date': {'$lt': limit_day}}
+                    ]
+                },
 
-        },
-        {
-            "$project": {
-                "_id": 1
+            },
+            {
+                "$project": {
+                    "_id": 1
+                }
             }
-        }
-    ]
+        ]
+    else:
+        day =  datetime.datetime.strptime(day, '%Y-%m-%d')
+        start_date = day + datetime.timedelta(days=days_after + 1)
+        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after + 1)
+        aggregate_query = [
+            {
+                "$match": {
+                    "$and": [
+                        {search_mynews_key: {'$exists': False}},
+                        {keywords_key: {'$exists': True}},
+                        {'date': {'$gte':start_date, '$lt': limit_day}}
+                    ]
+                },
+
+            },
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
     results = [i['_id'] for i in db[col_keywords].aggregate(aggregate_query)]
 
     if max_claims_per_day:
@@ -142,7 +168,7 @@ def get_lists_ids(db,
 
 def get_documents(db, col_keywords, keywords_key,
                   search_mynews_key, max_claims_per_day, max_news_per_claim,
-                  days_before, days_after):
+                  days_before, days_after, historical=False, day=None):
 
     global max_news
     list_ids = get_lists_ids(db,
@@ -150,7 +176,8 @@ def get_documents(db, col_keywords, keywords_key,
                              keywords_key=keywords_key,
                              search_mynews_key=search_mynews_key,
                              max_claims_per_day=max_claims_per_day,
-                             days_before=days_before, days_after=days_after)
+                             days_before=days_before, days_after=days_after,
+                             historical=historical, day=day)
 
 
     tqdm_length = len(list_ids)
@@ -241,6 +268,7 @@ def main():
     days_after = mynews_search_params['days_after']
     type_query = mynews_search_params['type_query']
     keywords_limit = mynews_search_params['keywords_limit']
+    historical = mynews_search_params['historical']
 
     # look for the fact-checks of a certain time span and extract the tokens
     if args.type_query:
@@ -275,7 +303,10 @@ def main():
                              max_claims_per_day=max_claims_per_day,
                              max_news_per_claim=max_news_per_claim,
                              days_before=days_before,
-                             days_after=days_after):
+                             days_after=days_after,
+                             historical=historical,
+                             day=args.day):
+
         fact_id = doc['fact_id']
         claim_date = doc['date']
         keyword_search = doc[strategy]

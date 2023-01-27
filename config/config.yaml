@@ -62,6 +62,7 @@ api_mynews_params:
   search_params:
     max_claims_per_day: false
     max_news_per_claim: auto
+    historical: false
     days_before: 7
     days_after: 7
     type_query: triples

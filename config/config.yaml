@@ -146,6 +146,13 @@ mongodb_params:
 
 pipeline_params:
 
+
+analysis:
+  count_day_google_file: ./data/count_day_google.json
+  count_day_tweets_file: ./data/count_day_tweets.json
+  count_day_mynews_file: ./data/count_day_mynews.json
+  count_day_maldita_file: ./data/count_day_maldita.json
+
 logging:
   logging_filename: config_logger.yaml
   level: dev

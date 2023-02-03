@@ -128,7 +128,7 @@ def main():
             matches[mynews_media_names[i]] = navarra_media_names[i.lower()]
             found_match = True
 
-        list_separators = ['/', ' - ', '  ', '. Ed. ', ' de ', ' en ']
+        list_separators = ['/', ' - ', '  ', '. Ed. ', ' de ', ' en ',' Ed. ']
         for sep in list_separators:
             i_parts = i.split(sep)
             for part in i_parts:

@@ -70,7 +70,9 @@ def random_fact_ids(db: pymongo.database,
                     collection: pymongo.collection, 
                     from_date: datetime.datetime, 
                     to_date: datetime.datetime, 
-                    number_per_day: int=1) -> dict:
+                    number_per_day: int=1,
+                    field_claim: str=None,
+                    field_review: str=None) -> dict:
     """
     Get nth random fact_id per day between two specified date
     The nth random fact_ids are only the nth first element of a list per date 
@@ -83,7 +85,13 @@ def random_fact_ids(db: pymongo.database,
     """
     query = [
         # Group the records per day and append a list with all the fact_id from the same date
-        {"$match": {'date': {"$gte": from_date, "$lte": to_date}}}, 
+        {"$match": {'date': {"$gte": from_date, "$lte": to_date}, 
+                    'organizationCalification.calification.name': 'Falso',  #FIXME This line is for Maldita, not works with Google and will return empty
+                    field_claim: {'$ne': None},
+                    field_review: {'$ne': None},
+                    'organization.name': {'$ne': 'Polígrafo'},
+                    }
+         }, 
         {"$group": {
             "_id": {
                 "date": {"$dateToString": {
@@ -143,6 +151,8 @@ def main():
     col_maldita = config_all['mongodb_params']['maldita']['name']
     col_keywords = config_all['mongodb_params']['keywords']['name']
     field_maldita = config_all['api_maldita_params']['fields']['reviewer']
+    field_claim_maldita = config_all['api_maldita_params']['fields']['claim']
+    field_review_maldita = config_all['api_maldita_params']['fields']['review']
     field_google = config_all['api_google_params']['fields']['reviewer']
     col_google = config_all['mongodb_params']['google']['name']
     file_tweets = config_all['analysis']['count_day_tweets_file']
@@ -153,14 +163,14 @@ def main():
     from_date = datetime.datetime(2022, 12, 26) 
     to_date = datetime.datetime(2023, 1, 26)
     sample_size_claim_per_day = 2
-    sample_size_tweet_per_claim = 200
+    sample_size_tweet_per_claim = 20
     file_sample_location = './data/sample_claim_tweets.jsonl'
 
     total_tweets = 0
     nbr_claims = 0
     first_record = True
     with open(file_sample_location, 'a', encoding='utf-8') as outfile:
-        for fact_id in random_fact_ids(mydb, col_maldita, from_date, to_date,  sample_size_claim_per_day):
+        for fact_id in random_fact_ids(mydb, col_maldita, from_date, to_date,  sample_size_claim_per_day, field_claim_maldita, field_review_maldita):
             nbr_claims += 1
             for result in getting_random_tweets(mydb, col_tweets, col_keywords, fact_id['fact_id'], sample_size_tweet_per_claim):
                 result = clean_result(result)

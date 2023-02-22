@@ -43,6 +43,7 @@ with open(logging_config_path,  "r") as f:
     logging.config.dictConfig(yaml_config)
 
 logger = logging.getLogger(config_all['logging']['level'])
+#logging.basicConfig(level=logging.INFO)
 
 
 mynews_cred_path = os.path.join(
@@ -83,6 +84,7 @@ def query(query_expression, token, max_news, media, claim_date, days_before, day
     start = claim_date - datetime.timedelta(days=days_before)
     end_int = time_to_int(end)
     start_int = time_to_int(start)
+    logger.debug('Looking for up to {} news'.format(max_news))
 
     headers = {
         'Authorization': f"Bearer {token.text}",
@@ -140,15 +142,14 @@ def get_lists_ids(db,
         ]
     else:
         day =  datetime.datetime.strptime(day, '%Y-%m-%d')
-        start_date = day + datetime.timedelta(days=days_after + 1)
-        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after + 1)
+        logger.info('Looking for fact-checks of the {}'.format(day))
         aggregate_query = [
             {
                 "$match": {
                     "$and": [
-                        {search_mynews_key: {'$exists': False}},
+                        #{search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': {'$gte':start_date, '$lt': limit_day}}
+                        {'date': day}
                     ]
                 },
 
@@ -170,7 +171,7 @@ def get_documents(db, col_keywords, keywords_key,
                   search_mynews_key, max_claims_per_day, max_news_per_claim,
                   days_before, days_after, historical=False, day=None):
 
-    global max_news
+
     list_ids = get_lists_ids(db,
                              col_keywords,
                              keywords_key=keywords_key,
@@ -179,8 +180,9 @@ def get_documents(db, col_keywords, keywords_key,
                              days_before=days_before, days_after=days_after,
                              historical=historical, day=day)
 
-
+    logger.info('Found {} fact-checks'.format(len(list_ids)))
     tqdm_length = len(list_ids)
+    global max_news
 
     if max_news_per_claim == 'auto':
         try:
@@ -190,6 +192,7 @@ def get_documents(db, col_keywords, keywords_key,
             max_news = 1
     else:
         max_news = int(max_news_per_claim)
+
     cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)
 
     for record in tqdm.tqdm(cursor, total=tqdm_length):
@@ -317,23 +320,23 @@ def main():
             type_strategy=type_query
         )
         logger.debug(query_expression)
+
         result = query(query_expression, token, max_news,
                        media, claim_date,
                        days_before=days_before,
                        days_after=days_after
                        )
-        logger.info(result)
+        #logger.info(result)
+        #logger.info('Got {} news'.format(len(result['news'])))
 
-        print('', result['total'])
-        print(len(result['news']))
 
         if result == {'detail': 'Too many requests, wait 1h'}:
-            logger.debug('Rate limit, wait 1 hour.')
+            logger.info('Rate limit, wait 1 hour.')
             time.sleep(3660)
         elif len(result['news']) != 0:
             total = result['total']
             news = result['news']
-            logger.debug('Results found:', len(news))
+            logger.info('Results found: {}'.format(len(news)))
             n_results += len(news)
             for n in news:
                 n['fact_id'] = fact_id
@@ -343,6 +346,8 @@ def main():
                 db[col_mynews].insert_many(news, ordered=False)
             except pymongo.errors.BulkWriteError:
                 pass
+        else:
+            logger.info('Results found: {}'.format(len(result['news'])))
         sources_to_update.append(fact_id)
 
     db[col_keywords].update_many(

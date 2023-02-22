@@ -83,7 +83,7 @@ def main():
     api_key = mynews_credentials['public_key']
     api_password = mynews_credentials['password']
     # import the navarra media list
-    with open('./mynews/BD_DIGITALMEDIA_SPAIN_2021.csv') as f:
+    with open('mynews/digitalmedia_22_02_23.csv') as f:
         reader = csv.reader(f)
         data = []
         # next(reader)
@@ -94,20 +94,23 @@ def main():
     #for i in range(0, 73):
     #    print('Index:', i, 'Field:', data[0][i], 'Example value:', data[1][i])
 
+    url_col = 3 # 1
+    name_col = 1 # 0
+    id_col = 0 # 72
     navarra_media_names = {}
     for line in data[1:]:
-        if line[0]:#line[2] == 'activo':  # and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
-            navarra_media_names[line[0].lower()] = line[72]
-            url = line[1]
+        if line[name_col]:#line[2] == 'activo':  # and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
+            navarra_media_names[line[name_col].lower()] = line[id_col]
+            url = line[url_col]
             pre = re.findall('http[s]?:\/\/[w\.]{0,4}', url)
             if not pre:
                 pre = ['']
             part_url = url[len(pre[0]):len(url)].replace(r'/', '')
-            navarra_media_names[part_url] = line[72]
+            navarra_media_names[part_url] = line[id_col]
             no_ending_url = part_url.split('.')[0]
-            navarra_media_names[no_ending_url] = line[72]
-            navarra_media_names[normalize_string(line[0])] = line[72]
-            navarra_media_names[name_to_url(line[0])] = line[72]
+            navarra_media_names[no_ending_url] = line[id_col]
+            navarra_media_names[normalize_string(line[name_col])] = line[id_col]
+            navarra_media_names[name_to_url(line[name_col])] = line[id_col]
 
     # call from the list of media in the mynews API
     token = get_token(api_key, api_password)
@@ -122,6 +125,8 @@ def main():
     # match so that it detects which media are the same
     counter = 0
     matches = {}
+    not_matching = []
+    print(len(mynews_media_names))
     for i in mynews_media_names:
         found_match = False
         if i.lower() in navarra_media_names:
@@ -161,6 +166,8 @@ def main():
 
         if found_match:
             counter += 1
+        else:
+            not_matching.append(i)
 
     print(counter)
 
@@ -168,6 +175,10 @@ def main():
         writer = csv.writer(out)
         for line in matches:
             writer.writerow([line, matches[line]])
+
+    with open('mynews/not_matched_media.txt', 'w') as out:
+        for line in not_matching:
+            out.write(line+'\n')
 
 
 main()

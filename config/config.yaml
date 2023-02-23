@@ -61,7 +61,8 @@ api_mynews_params:
   search_mynews_key: &search_mynews_key search_mynews_key
   search_params:
     max_claims_per_day: false
-    max_news_per_claim: auto
+    max_news_per_claim: false
+    max_news_per_claim_per_day: 10
     historical: false
     days_before: 7
     days_after: 7

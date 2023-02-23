@@ -6,11 +6,13 @@ import logging.config
 from searchtweets import ResultStream, gen_request_parameters
 from tenacity import after_log, retry, stop_after_attempt, wait_exponential
 
-config_path = os.path.join(os.path.dirname(__file__), "../config", "config.yaml")
+config_path = os.path.join(os.path.dirname(
+    __file__), "../config", "config.yaml")
 config_all = yaml.safe_load(open(config_path))
 
 logging_config_path = os.path.join(
-    os.path.dirname(__file__), "../config", config_all["logging"]["logging_filename"]
+    os.path.dirname(
+        __file__), "../config", config_all["logging"]["logging_filename"]
 )
 with open(logging_config_path, "r") as f:
     yaml_config = yaml.safe_load(f.read())
@@ -20,8 +22,7 @@ logger = logging.getLogger(config_all["logging"]["level"])
 
 
 @retry(
-    wait=wait_exponential(multiplier=1, min=4, max=60 * 10),
-    stop=stop_after_attempt(10),
+    wait=wait_exponential(multiplier=1, min=4, max=60 * 15),
     after=after_log(logger, logging.INFO),
 )
 def _search_twitter(rule, max_tweets, output_format, twitter_credentials):
@@ -66,7 +67,6 @@ def search_twitter(twitter_credentials, query, search_params, rule_params):
 
     rule_params = prepare_rule(rule_params)
     rule_params["query"] = prepare_query(query, additional_query)
-    print(rule_params["query"])
 
     rule = gen_request_parameters(**rule_params)
     return _search_twitter(

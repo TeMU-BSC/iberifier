@@ -1,5 +1,6 @@
 from mongo_utils import mongo_utils
 import logging
+import time
 import os
 import sys
 import tqdm
@@ -118,15 +119,25 @@ def get_documents(
 
 
 def split_call_per_day(date_fact_check, days_before, days_after):
-    dtformat = "%Y-%m-%dT%H:%M:%SZ"  # the date format string required by twitter
-    list_days = None
-    # list_days = sorted(chain(range(1, days_after + 1), range(0, -days_before - 1, -1)))1, -1)))
 
-    date = datetime.strptime(date_fact_check, dtformat)
+    # dtformat = "%Y-%m-%dT%H:%M:%SZ"  # the date format string required by twitter
+    dtformat = "%Y-%m-%dT%H:%M"  # the date format string required by twitter
+    # if isinstance(date_fact_check, str):
+    #     date_fact_check = datetime.strptime(date_fact_check, dtformat)
+    # Set the time at midnight
+    date_fact_check = date_fact_check.replace(
+        hour=0, minute=0, second=0, microsecond=0)
+
+    list_days = sorted(chain(range(1, days_after + 1),
+                       range(0, -days_before - 1, -1)))
 
     for delta_days in list_days:
-        start_time = date - timedelta(delta_days)
+        # start_time is inclusive to the second (start to collect data from the lower limit)
+        start_time = date_fact_check + timedelta(delta_days)
+        # end_time is exclusive to the second (does not collect the data from the top limit)
         end_time = start_time + timedelta(1)
+        start_time = start_time.strftime(dtformat)
+        end_time = end_time.strftime(dtformat)
         yield start_time, end_time
 
 
@@ -150,6 +161,11 @@ def main():
 
     # get only the documents who were not searched for
     logger.info("Parsing the different claims")
+    total_documents_done = 0 
+    total_tweets_retrieved = 0
+    earlier_day_retrieved = set()
+    later_day_retrieved = set()
+    n = 0
     for doc in get_documents(
         mydb,
         col_keywords,
@@ -180,6 +196,8 @@ def main():
 
         # Need to get the different day separately to ensure we do not hit the limit before getting the last day
         for start_time, end_time in split_call_per_day(doc['date'], days_before, days_after):
+            earlier_day_retrieved.add(start_time)
+            later_day_retrieved.add(end_time)
             twitter_rule_params["start_time"] = start_time
             twitter_rule_params["end_time"] = end_time
             tweets = search_twitter(
@@ -191,10 +209,18 @@ def main():
 
             for tweet in tweets:
                 insert_tweets_mongo(tweet, fact_id, mydb[col_tweets])
+                total_tweets_retrieved +=1
 
             mydb[col_keywords].update_one(
                 {"fact_id": fact_id}, {"$set": {search_twitter_key: datetime.now()}}
             )
+            time.sleep(1)
+        total_documents_done +=1
+        if n == 5:
+            break
+    logger.info(f"Parsed {total_documents_done}")
+    logger.info(f"Retrieved {total_tweets_retrieved}")
+    logger.info(f"Covered the period from {min(earlier_day_retrieved)} to {max(later_day_retrieved)}")
 
 
 if __name__ == "__main__":

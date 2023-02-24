@@ -114,7 +114,7 @@ mongodb_params:
         params: {unique: true}
 
   tweets: 
-    name: tweets
+    name: tweets_new_call_strat
     index:
       - key: {tweet_id: 1} 
         params: {unique: true}

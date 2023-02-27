@@ -51,7 +51,7 @@ def get_arguments(parser):
 def api_call(user, key, collection, api_url, type_query, max_days):
 
     params = {'page': 1, 'itemPerPage': 30}
-    if type_query == 'historical':
+    if type_query == 'historical': # TODO: historical / dayyly is not really usefull anymore
         pass
     elif type_query == 'daily':
         yesterday = datetime.datetime.now() - datetime.timedelta(days=max_days)

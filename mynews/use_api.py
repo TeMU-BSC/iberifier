@@ -125,9 +125,10 @@ def get_lists_ids(db,
             {
                 "$match": {
                     "$and": [
-                        #{search_mynews_key: {'$exists': False}},
+                        {search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': day}
+                        {'date': day},
+                        {"calification": "Falso"},
                     ]
                 },
 
@@ -146,7 +147,8 @@ def get_lists_ids(db,
                     "$and": [
                         {search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': {'$lt': limit_day}}
+                        {'date': {'$lt': limit_day}},
+                        {"calification": "Falso"},
                     ]
                 },
 

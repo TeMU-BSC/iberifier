@@ -80,8 +80,8 @@ def get_token(public_key, password):
 
 def query(query_expression, token, max_news, media, start, end):
     logger.debug('Looking for up to {} news from {} to {}'.format(max_news, start, end))
-    end_int = time_to_int(end)
-    start_int = time_to_int(start)
+    end_int = int(datetime.datetime.timestamp(end))  # time_to_int(end)
+    start_int = int(datetime.datetime.timestamp(end))  # time_to_int(start)
 
     headers = {
         'Authorization': f"Bearer {token.text}",
@@ -209,15 +209,6 @@ def get_keywords(args, db, type_keywords='keywords_pairs'):
         dict_keywords[(fact['_id'], collection)] = [
             fact[type_keywords], fact['date']]
     return dict_keywords
-
-
-def time_to_int(dateobj):
-    total = int(dateobj.strftime('%S'))
-    total += int(dateobj.strftime('%M')) * 60
-    total += int(dateobj.strftime('%H')) * 60 * 60
-    total += (int(dateobj.strftime('%j')) - 1) * 60 * 60 * 24
-    total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
-    return total
 
 
 def write_query(keywords, keywords_limit=4, type_strategy='pairs'):

@@ -80,14 +80,14 @@ def get_token(public_key, password):
 
 def query(query_expression, token, max_news, media, start, end):
     logger.debug('Looking for up to {} news from {} to {}'.format(max_news, start, end))
-    end_int = int(datetime.datetime.timestamp(end))  # time_to_int(end)
-    start_int = int(datetime.datetime.timestamp(end))  # time_to_int(start)
+    end_int = int(datetime.datetime.timestamp(end)) #time_to_int(end)
+    start_int = int(datetime.datetime.timestamp(end)) #time_to_int(start)
 
     headers = {
         'Authorization': f"Bearer {token.text}",
     }
     publications = []
-    for m in media:
+    for m in media[:900]:
         publications.append(('publications', (None, m)))
 
     files = [
@@ -201,15 +201,15 @@ def get_keywords(args, db, type_keywords='keywords_pairs'):
     dict_keywords = {}
     collection = 'keywords'
     limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
-    # get the keywords of the news older than 7 days and with no search_mynews_key
+    # get the keywords of the news older than 7 days and with no search_mynews_key and labelled as False
     search = {"date": {'$lt': limit_day},
-              "search_mynews_key": {'$exists': False}}
+              "search_mynews_key": {'$exists': False},
+              "calification": 'Falso'}
     cursor = db[collection].find(search)
     for fact in cursor:
         dict_keywords[(fact['_id'], collection)] = [
             fact[type_keywords], fact['date']]
     return dict_keywords
-
 
 def write_query(keywords, keywords_limit=4, type_strategy='pairs'):
     keys = keywords[:keywords_limit]  # I limit the keywords to 4

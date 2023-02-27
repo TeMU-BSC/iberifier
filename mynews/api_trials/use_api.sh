@@ -5,12 +5,8 @@ TOKEN=$(curl --location --request POST 'https://api.mynews.es/api/token/' \
 
 curl --location --request POST 'https://api.mynews.es/api/hemeroteca/' \
 --header 'Authorization: Bearer '$TOKEN \
---form 'query="(BSC AND BARCELONA) OR (BSC AND MADRID)"' \
---form 'fromTime="1654321118"' \
---form 'toTime="1656913073"' \
---form 'maxResults="2"' \
---form 'publications="116"' \
---form 'publications="117"'
+--form 'query="(baches AND descarriló AND mal) OR (baches AND descarriló AND ohio) OR (baches AND descarriló AND químicos) OR (baches AND mal AND ohio) OR (baches AND mal AND químicos) OR (baches AND ohio AND químicos) OR (descarriló AND mal AND ohio) OR (descarriló AND mal AND químicos) OR (descarriló AND ohio AND químicos) OR (mal AND ohio AND químicos)"' \
+--form 'fromTime="1675296000"' \
+--form 'toTime="1675382400"' \
+--form 'maxResults="2"'
 
-curl --location --request GET 'https://api.mynews.es/api/publicaciones/' \
---header 'Authorization: Bearer '$TOKEN

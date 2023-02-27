@@ -118,15 +118,16 @@ def get_lists_ids(db,
                   days_after,
                   historical = False,
                   day = None):
-    if not historical:
-        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after+1)
+    if day:
+        day =  datetime.datetime.strptime(day, '%Y-%m-%d')
+        logger.info('Looking for fact-checks of the {}'.format(day))
         aggregate_query = [
             {
                 "$match": {
                     "$and": [
-                        {search_mynews_key: {'$exists': False}},
+                        #{search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': {'$lt': limit_day}}
+                        {'date': day}
                     ]
                 },
 
@@ -138,15 +139,14 @@ def get_lists_ids(db,
             }
         ]
     else:
-        day =  datetime.datetime.strptime(day, '%Y-%m-%d')
-        logger.info('Looking for fact-checks of the {}'.format(day))
+        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after + 1)
         aggregate_query = [
             {
                 "$match": {
                     "$and": [
-                        #{search_mynews_key: {'$exists': False}},
+                        {search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': day}
+                        {'date': {'$lt': limit_day}}
                     ]
                 },
 

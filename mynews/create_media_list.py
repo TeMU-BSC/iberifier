@@ -99,7 +99,7 @@ def main():
     id_col = 0 # 72
     navarra_media_names = {}
     for line in data[1:]:
-        if line[name_col]:#line[2] == 'activo':  # and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
+        if line[name_col] and line[2] == 'true' and line[16] == 'ES':  # and line[7] == 'periodístico' and line[31] == 'nacional' and line[26] == "1": # here we add the filters!!!
             navarra_media_names[line[name_col].lower()] = line[id_col]
             url = line[url_col]
             pre = re.findall('http[s]?:\/\/[w\.]{0,4}', url)

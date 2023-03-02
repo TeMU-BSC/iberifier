@@ -1,4 +1,3 @@
-from mongo_utils import mongo_utils
 import logging
 import time
 import os
@@ -15,6 +14,7 @@ import yaml
 from api_twitter import search_twitter
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from mongo_utils import mongo_utils
 
 
 logger = logging.getLogger(__name__)

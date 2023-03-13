@@ -101,7 +101,7 @@ def query(query_expression, token, max_news, media, start, end):
 
     extended = files + publications
 
-    #print(files)
+    logger.debug(files)
 
     response = requests.post(
         'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
@@ -310,7 +310,7 @@ def main():
             keywords_limit=keywords_limit,
             type_strategy=type_query
         )
-        logger.debug(query_expression)
+        #logger.debug(query_expression)
 
         # query the news from X days before claim date to X days after claim date, every day
         end = claim_date + datetime.timedelta(days=days_after)

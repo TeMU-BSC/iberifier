@@ -81,7 +81,7 @@ def get_token(public_key, password):
 def query(query_expression, token, max_news, media, start, end):
     logger.debug('Looking for up to {} news from {} to {}'.format(max_news, start, end))
     end_int = int(datetime.datetime.timestamp(end)) #time_to_int(end)
-    start_int = int(datetime.datetime.timestamp(end)) #time_to_int(start)
+    start_int = int(datetime.datetime.timestamp(start)) #time_to_int(start)
 
     headers = {
         'Authorization': f"Bearer {token.text}",

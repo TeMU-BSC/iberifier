@@ -1,4 +1,3 @@
-
 import logging
 import time
 import os
@@ -15,6 +14,7 @@ import yaml
 from api_twitter import search_twitter
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 from mongo_utils import mongo_utils
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ twitter_credentials = yaml.safe_load(open(twitter_cred_path))[
 
 
 def insert_tweets_mongo(tweet, fact_id, collection):
-    collection.update_one(
+    insert = collection.update_one(
         {"tweet_id": tweet["id"]},
         {
             "$set": {
@@ -112,6 +112,7 @@ def get_documents(
     )
 
     tqdm_length = len(list_ids)
+    logger.info(f'Processing {tqdm_length} records to Twitter')
     cursor = db[col_keywords].find({"_id": {"$in": list_ids}}, batch_size=1)
 
     for record in tqdm.tqdm(cursor, total=tqdm_length):
@@ -154,7 +155,6 @@ def main():
     search_twitter_key = config_all["api_twitter_params"]["search_twitter_key"]
     twitter_search_params = config_all["api_twitter_params"]["search_params"]
     twitter_rule_params = config_all["api_twitter_params"]["rule_params"]
-    twitter_additional_query = twitter_search_params["additional_query"]
     days_before = twitter_search_params["days_before"]
     days_after = twitter_search_params["days_after"]
 
@@ -162,7 +162,7 @@ def main():
 
     # get only the documents who were not searched for
     logger.info("Parsing the different claims")
-    total_documents_done = 0 
+    total_documents_done = 0
     total_tweets_retrieved = 0
     earlier_day_retrieved = set()
     later_day_retrieved = set()
@@ -210,18 +210,24 @@ def main():
 
             for tweet in tweets:
                 insert_tweets_mongo(tweet, fact_id, mydb[col_tweets])
-                total_tweets_retrieved +=1
+                total_tweets_retrieved += 1
 
             mydb[col_keywords].update_one(
                 {"fact_id": fact_id}, {"$set": {search_twitter_key: datetime.now()}}
             )
             time.sleep(1)
-        total_documents_done +=1
+        total_documents_done += 1
         if n == 5:
             break
     logger.info(f"Parsed {total_documents_done}")
     logger.info(f"Retrieved {total_tweets_retrieved}")
-    logger.info(f"Covered the period from {min(earlier_day_retrieved)} to {max(later_day_retrieved)}")
+    try:
+        min_earlier_day = min(earlier_day_retrieved)
+        max_later_day = max(later_day_retrieved)
+        logger.info(
+            f"Covered the period from {min_earlier_day} to {max_later_day}")
+    except ValueError:  # Empty set, no doc earlier_day_retrieved
+        logger.info('No Tweets retrieved')
 
 
 if __name__ == "__main__":

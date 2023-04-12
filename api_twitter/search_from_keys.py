@@ -178,6 +178,9 @@ def main():
     ):
         fact_id = doc["fact_id"]
         keyword_search = doc[strategy]
+        # Quick fix that creates Twitter query to crash with a 400 errors has it does not know
+        # How to interpret the `and` and the `or` because they are used as operator
+        keyword_search = [k for k in keyword_search if k not in ['and', 'or']]
         size_keywords = 3
 
         query = ""

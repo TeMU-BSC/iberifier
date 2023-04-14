@@ -7,7 +7,7 @@ api_twitter_params:
 
     query: null
     additional_query: ['-is:retweet']
-    max_tweets: 10000
+    max_tweets: 1000 # It is limit per day per claim and not per claim only
     date: null
     # date: '28-09-2022'
     days_before: 7
@@ -40,6 +40,8 @@ api_google_params:
     url: &url_google claimReview.url
     reviewer: &reviewer_google claimReview.publisher.name
     date: &date_google date
+    calification: &calification_google claimReview.textualRating
+    categories: &category_google claimReview.textualRating
 
 
 api_maldita_params:
@@ -53,6 +55,8 @@ api_maldita_params:
     url: &url_maldita link
     reviewer: &reviewer_maldita organization.name
     date:  &date_maldita date
+    calification: &calification_maldita organizationCalification.calification.name
+    categories: &categories_maldita categories
 
 
 api_mynews_params:
@@ -61,7 +65,8 @@ api_mynews_params:
   search_mynews_key: &search_mynews_key search_mynews_key
   search_params:
     max_claims_per_day: false
-    max_news_per_claim: auto
+    max_news_per_claim: false
+    max_news_per_claim_per_day: 10
     historical: false
     days_before: 7
     days_after: 7
@@ -113,7 +118,7 @@ mongodb_params:
         params: {unique: true}
 
   tweets: 
-    name: tweets
+    name: tweets_new_call_strat
     index:
       - key: {tweet_id: 1} 
         params: {unique: true}

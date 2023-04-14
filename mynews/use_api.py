@@ -43,6 +43,7 @@ with open(logging_config_path,  "r") as f:
     logging.config.dictConfig(yaml_config)
 
 logger = logging.getLogger(config_all['logging']['level'])
+#logging.basicConfig(level=logging.INFO)
 
 
 mynews_cred_path = os.path.join(
@@ -77,18 +78,16 @@ def get_token(public_key, password):
     return TOKEN
 
 
-def query(query_expression, token, max_news, media, claim_date, days_before, days_after):
-    # query the news from X days before claim date to X days after claim date
-    end = claim_date + datetime.timedelta(days=days_after)
-    start = claim_date - datetime.timedelta(days=days_before)
-    end_int = time_to_int(end)
-    start_int = time_to_int(start)
+def query(query_expression, token, max_news, media, start, end):
+    logger.debug('Looking for up to {} news from {} to {}'.format(max_news, start, end))
+    end_int = int(datetime.datetime.timestamp(end)) #time_to_int(end)
+    start_int = int(datetime.datetime.timestamp(start)) #time_to_int(start)
 
     headers = {
         'Authorization': f"Bearer {token.text}",
     }
     publications = []
-    for m in media:
+    for m in media[:900]:
         publications.append(('publications', (None, m)))
 
     files = [
@@ -102,7 +101,7 @@ def query(query_expression, token, max_news, media, claim_date, days_before, day
 
     extended = files + publications
 
-    #print(files)
+    logger.debug(files)
 
     response = requests.post(
         'https://api.mynews.es/api/hemeroteca/', headers=headers, files=extended)
@@ -119,15 +118,17 @@ def get_lists_ids(db,
                   days_after,
                   historical = False,
                   day = None):
-    if not historical:
-        limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after+1)
+    if day:
+        day =  datetime.datetime.strptime(day, '%Y-%m-%d')
+        logger.info('Looking for fact-checks of the {}'.format(day))
         aggregate_query = [
             {
                 "$match": {
                     "$and": [
                         {search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': {'$lt': limit_day}}
+                        {'date': day},
+                        {"calification": "Falso"},
                     ]
                 },
 
@@ -139,8 +140,6 @@ def get_lists_ids(db,
             }
         ]
     else:
-        day =  datetime.datetime.strptime(day, '%Y-%m-%d')
-        start_date = day + datetime.timedelta(days=days_after + 1)
         limit_day = datetime.datetime.today() - datetime.timedelta(days=days_after + 1)
         aggregate_query = [
             {
@@ -148,7 +147,8 @@ def get_lists_ids(db,
                     "$and": [
                         {search_mynews_key: {'$exists': False}},
                         {keywords_key: {'$exists': True}},
-                        {'date': {'$gte':start_date, '$lt': limit_day}}
+                        {'date': {'$lt': limit_day}},
+                        {"calification": "Falso"},
                     ]
                 },
 
@@ -170,7 +170,7 @@ def get_documents(db, col_keywords, keywords_key,
                   search_mynews_key, max_claims_per_day, max_news_per_claim,
                   days_before, days_after, historical=False, day=None):
 
-    global max_news
+
     list_ids = get_lists_ids(db,
                              col_keywords,
                              keywords_key=keywords_key,
@@ -179,17 +179,19 @@ def get_documents(db, col_keywords, keywords_key,
                              days_before=days_before, days_after=days_after,
                              historical=historical, day=day)
 
-
+    logger.info('Found {} fact-checks'.format(len(list_ids)))
     tqdm_length = len(list_ids)
+    # global max_news
+    #
+    # if max_news_per_claim == 'auto':
+    #     try:
+    #         max_news = 100/tqdm_length
+    #         max_news = int(max_news)
+    #     except ZeroDivisionError:
+    #         max_news = 1
+    # else:
+    #     max_news = int(max_news_per_claim)
 
-    if max_news_per_claim == 'auto':
-        try:
-            max_news = 100/tqdm_length
-            max_news = int(max_news)
-        except ZeroDivisionError:
-            max_news = 1
-    else:
-        max_news = int(max_news_per_claim)
     cursor = db[col_keywords].find({'_id': {"$in": list_ids}}, batch_size=1)
 
     for record in tqdm.tqdm(cursor, total=tqdm_length):
@@ -201,24 +203,15 @@ def get_keywords(args, db, type_keywords='keywords_pairs'):
     dict_keywords = {}
     collection = 'keywords'
     limit_day = datetime.datetime.today() - datetime.timedelta(days=args.time_window)
-    # get the keywords of the news older than 7 days and with no search_mynews_key
+    # get the keywords of the news older than 7 days and with no search_mynews_key and labelled as False
     search = {"date": {'$lt': limit_day},
-              "search_mynews_key": {'$exists': False}}
+              "search_mynews_key": {'$exists': False},
+              "calification": 'Falso'}
     cursor = db[collection].find(search)
     for fact in cursor:
         dict_keywords[(fact['_id'], collection)] = [
             fact[type_keywords], fact['date']]
     return dict_keywords
-
-
-def time_to_int(dateobj):
-    total = int(dateobj.strftime('%S'))
-    total += int(dateobj.strftime('%M')) * 60
-    total += int(dateobj.strftime('%H')) * 60 * 60
-    total += (int(dateobj.strftime('%j')) - 1) * 60 * 60 * 24
-    total += (int(dateobj.strftime('%Y')) - 1970) * 60 * 60 * 24 * 365
-    return total
-
 
 def write_query(keywords, keywords_limit=4, type_strategy='pairs'):
     keys = keywords[:keywords_limit]  # I limit the keywords to 4
@@ -264,6 +257,7 @@ def main():
     mynews_search_params = config_all['api_mynews_params']['search_params']
     max_claims_per_day = mynews_search_params['max_claims_per_day']
     max_news_per_claim = mynews_search_params['max_news_per_claim']
+    max_news_per_claim_per_day = mynews_search_params['max_news_per_claim_per_day']
     days_before = mynews_search_params['days_before']
     days_after = mynews_search_params['days_after']
     type_query = mynews_search_params['type_query']
@@ -316,34 +310,36 @@ def main():
             keywords_limit=keywords_limit,
             type_strategy=type_query
         )
-        logger.debug(query_expression)
-        result = query(query_expression, token, max_news,
-                       media, claim_date,
-                       days_before=days_before,
-                       days_after=days_after
-                       )
-        logger.info(result)
+        #logger.debug(query_expression)
 
-        print('', result['total'])
-        print(len(result['news']))
+        # query the news from X days before claim date to X days after claim date, every day
+        end = claim_date + datetime.timedelta(days=days_after)
+        start = claim_date - datetime.timedelta(days=days_before)
+        while start < end:
+            to_date = start + datetime.timedelta(days=1)
+            result = query(query_expression, token, max_news_per_claim_per_day,
+                           media, start, to_date)
+            start = start + datetime.timedelta(days=1)
 
-        if result == {'detail': 'Too many requests, wait 1h'}:
-            logger.debug('Rate limit, wait 1 hour.')
-            time.sleep(3660)
-        elif len(result['news']) != 0:
-            total = result['total']
-            news = result['news']
-            logger.debug('Results found:', len(news))
-            n_results += len(news)
-            for n in news:
-                n['fact_id'] = fact_id
-                n['date'] = datetime.datetime.strptime(n['Date'], '%d/%m/%Y')
-                n['query_output'] = total
-            try:
-                db[col_mynews].insert_many(news, ordered=False)
-            except pymongo.errors.BulkWriteError:
-                pass
-        sources_to_update.append(fact_id)
+            if result == {'detail': 'Too many requests, wait 1h'}:
+                logger.info('Rate limit, wait 1 hour.')
+                time.sleep(3660)
+            elif len(result['news']) != 0:
+                total = result['total']
+                news = result['news']
+                logger.info('Results found: {}'.format(len(news)))
+                n_results += len(news)
+                for n in news:
+                    n['fact_id'] = fact_id
+                    n['date'] = datetime.datetime.strptime(n['Date'], '%d/%m/%Y')
+                    n['query_output'] = total
+                try:
+                    db[col_mynews].insert_many(news, ordered=False)
+                except pymongo.errors.BulkWriteError:
+                    pass
+            else:
+                logger.info('Results found: {}'.format(len(result['news'])))
+            sources_to_update.append(fact_id)
 
     db[col_keywords].update_many(
         {"fact_id": {"$in": sources_to_update}}, {

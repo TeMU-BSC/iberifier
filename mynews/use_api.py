@@ -340,11 +340,12 @@ def main():
             else:
                 logger.info('Results found: {}'.format(len(result['news'])))
             sources_to_update.append(fact_id)
+            db[col_keywords].update_one({"fact_id":fact_id}, {"$set": {search_mynews_key: datetime.datetime.now()}})
 
-    db[col_keywords].update_many(
-        {"fact_id": {"$in": sources_to_update}}, {
-            "$set": {search_mynews_key: datetime.datetime.now()}}
-    )
+    #db[col_keywords].update_many(
+    #    {"fact_id": {"$in": sources_to_update}}, {
+    #        "$set": {search_mynews_key: datetime.datetime.now()}}
+    #)
 
 
 if __name__ == "__main__":

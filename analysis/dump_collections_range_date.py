@@ -23,7 +23,10 @@ config_all = yaml.safe_load(open(config_path))
 
 # TODO: Absolutely inefficient, need to use an aggregate, project and foreign key instead of that
 def get_list_fact_ids(date1, date2, mydb, col_maldita):
-    for fact_id in mydb[col_maldita].find({ "date": {"$gte": date1, "$lte": date2}, "organization.name": { "$in": ['Maldita.es', 'EFE Verifica', 'Newtral']}}, {'fact_id'}):
+    for fact_id in mydb[col_maldita].find({"date": {"$gte": date1, "$lte": date2}, 
+                                           "organization.name": {"$in": ['Maldita.es', 'EFE Verifica', 'Newtral']},
+                                           "organizationCalification.calification.name": 'Falso'}, 
+                                          {'fact_id'}):
         yield fact_id
 
 
@@ -35,13 +38,18 @@ def main():
     col_maldita = config_all['mongodb_params']['maldita']['name']
     col_google = config_all['mongodb_params']['google']['name']
     col_keywords = config_all['mongodb_params']['keywords']['name']
+    file_dump_tweets = config_all['analysis']['dump_tweets_file']
+    file_dump_google = config_all['analysis']['dump_google_file']
+    file_dump_mynews = config_all['analysis']['dump_mynews_file']
+    file_dump_maldita = config_all['analysis']['dump_maldita_file']
+    file_dump_keywords = config_all['analysis']['dump_keywords_file']
 
     # Set the date range for keywords search
-    date1 = datetime.datetime(2023, 2, 1)
-    date2 = datetime.datetime(2023, 4, 1)
+    from_date_dump = datetime.datetime(2023, 3, 8)
+    until_date_dump = datetime.datetime(2023, 4, 8)
 
     relevant_fact_per_date = list(get_list_fact_ids(
-        date1, date2, mydb, col_maldita))
+        from_date_dump, until_date_dump, mydb, col_maldita))
 
     # Retrieve the list of relevant maldita documents
     relevant_maldita = mydb[col_maldita].find({
@@ -59,18 +67,18 @@ def main():
     })
 
     # Retrieve the list of keywords documents
-    relevant_keywords_doc = mydb[col_mynews].find({
+    relevant_keywords_doc = mydb[col_keywords].find({
         "fact_id": {"$in": [k['_id'] for k in relevant_fact_per_date]}
     })
 
     # Dump the relevant documents to JSON files
-    with open("keywords.json", "w") as f:
+    with open(file_dump_keywords, "w") as f:
         f.write(dumps(relevant_keywords_doc))
-    with open("maldita.json", "w") as f:
+    with open(file_dump_maldita, "w") as f:
         f.write(dumps(relevant_maldita))
-    with open("tweets.json", "w") as f:
+    with open(file_dump_tweets, "w") as f:
         f.write(dumps(relevant_tweets))
-    with open("mynews.json", "w") as f:
+    with open(file_dump_mynews, "w") as f:
         f.write(dumps(relevant_mynews))
 
 

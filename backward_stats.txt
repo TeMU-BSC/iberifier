@@ -1,0 +1,276 @@
+ // GENERAL STATS
+
+
+Counts of maldita claims: 425
+Counts of google claims: 308
+Counts of tweets: 750127
+Counts of news: 5531
+ 
+
+ // FIELD STATS
+
+COUNT OF MALDITA CLAIMS BY PUBLISHER
+[
+  { _id: { id: 3, name: 'Verificat' }, count: 70 },
+  { _id: { id: 4, name: 'Polígrafo' }, count: 99 },
+  { _id: { id: 2, name: 'EFE Verifica' }, count: 52 },
+  { _id: { id: 1, name: 'Maldita.es' }, count: 204 }
+]
+
+
+COUNTS OF MALDITA CLAIMS BY TYPE
+[
+  {
+    _id: { name: 'Contexto falso - Información / Informação falsa' },
+    count: 175
+  },
+  { _id: { name: 'Otros / Outros' }, count: 90 },
+  { _id: { name: 'Cita falsa / Citação falsa' }, count: 12 },
+  { _id: { name: 'Contenido/Conteúdo manipulado' }, count: 33 },
+  { _id: { name: 'Timo / Fraude' }, count: 39 },
+  { _id: { name: 'Invent' }, count: 4 },
+  { _id: { name: 'Sátira' }, count: 7 },
+  { _id: null, count: 65 }
+]
+
+COUNTS OF MALDITA CLAIMS BY LABEL
+[
+  { _id: 'Engañoso / Enganador', count: 23 },
+  { _id: 'No verificable / Não verificável', count: 2 },
+  { _id: 'Falso', count: 273 },
+  { _id: 'Explainer', count: 64 },
+  { _id: 'Verdadero / Verdadeiro', count: 54 },
+  { _id: 'Manipulado', count: 5 },
+  { _id: 'Sin pruebas / Sem provas', count: 4 }
+]
+ 
+
+COUNTS OF GOOGLE CLAIMS BY PUBLISHER
+[
+  { _id: { name: 'Newtral', site: 'newtral.es' }, count: 260 },
+  { _id: { name: 'Verificat', site: 'verificat.cat' }, count: 11 },
+  { _id: { name: 'Antena 3', site: 'antena3.com' }, count: 12 },
+  { _id: { name: 'Europa Press', site: 'europapress.es' }, count: 25 }
+]
+
+COUNTS OF GOOGLE CLAIMS BY LABEL
+[
+  { _id: 'Fals', count: 4 },
+  { _id: 'Falso', count: 205 },
+  { _id: 'En su mayoría falso', count: 1 },
+  { _id: 'False', count: 25 },
+  { _id: 'Verdad a medias', count: 6 },
+  { _id: 'Engañoso', count: 60 },
+  { _id: 'Enganyós', count: 7 }
+]
+ 
+
+AVERAGE RETWEET COUNT OF ALL THE TWEETS
+[ { _id: null, average: 7.053462946940985 } ]
+
+AVERAGE REPLY COUNTS OF ALL THE TWEETS
+[ { _id: null, average: 2.4260785173710584 } ]
+
+AVERAGE LIKE COUNTS OF ALL THE TWEETS
+[ { _id: null, average: 33.52619889698678 } ]
+
+AVERAGE QUOTE COUNTS OF ALL THE TWEETS
+[ { _id: null, average: 0.8273972274028265 } ]
+ 
+
+NEWS COUNT BY NEWSPAPER
+[
+  { _id: 'Atlántico Diario', count: 10 },
+  { _id: 'eldia.es', count: 53 },
+  { _id: 'diariodeleon.es', count: 9 },
+  { _id: 'Faro de Vigo', count: 13 },
+  { _id: 'infolibre.es', count: 10 },
+  { _id: 'Diario Palentino', count: 31 },
+  { _id: 'PRONTO', count: 1 },
+  { _id: 'eldiadecordoba.es', count: 22 },
+  { _id: 'e-noticies.cat', count: 3 },
+  { _id: 'eldiarioalerta.com', count: 5 },
+  { _id: 'El Mundo   Suplementos', count: 9 },
+  { _id: 'La Nueva España', count: 9 },
+  { _id: 'laopinioncoruna.es', count: 12 },
+  { _id: 'Las Provincias', count: 16 },
+  { _id: 'Lainformacion.com', count: 13 },
+  { _id: 'eldiario.es', count: 39 },
+  { _id: 'noticiasdealmeria.com', count: 5 },
+  { _id: 'huelvainformacion.es', count: 24 },
+  { _id: 'menorca.info', count: 5 },
+  { _id: 'laregion.es', count: 5 },
+  { _id: 'Diario de Ferrol', count: 9 },
+  { _id: 'Viva Sevilla', count: 2 },
+  { _id: 'El Mundo  Ed. Castilla y León', count: 33 },
+  { _id: 'economiadigital.es', count: 18 },
+  { _id: 'La Opinión de Málaga', count: 5 },
+  { _id: 'redaccionmedica.com', count: 9 },
+  { _id: 'lavozdeasturias.es', count: 7 },
+  { _id: 'elboletin.com', count: 4 },
+  { _id: 'fotogramas.es', count: 5 },
+  { _id: 'Diari de Tarragona', count: 12 },
+  { _id: 'docenotas.com', count: 1 },
+  { _id: 'cadenaser.com', count: 28 },
+  { _id: 'elidealgallego.com', count: 6 },
+  { _id: 'La Voz de Almería', count: 7 },
+  { _id: 'Telva', count: 2 },
+  { _id: 'La Razón', count: 138 },
+  { _id: 'elcorreoweb.es', count: 6 },
+  { _id: 'vozpopuli.com', count: 31 },
+  { _id: 'nuevaalcarria.com', count: 2 },
+  { _id: 'vozlibre.com', count: 2 },
+  { _id: 'eldigitalcastillalamancha.es', count: 2 },
+  { _id: 'estrelladigital.es', count: 1 },
+  { _id: 'publico.es', count: 83 },
+  { _id: 'diariosur.es', count: 14 },
+  { _id: 'El Correo Gallego', count: 15 },
+  { _id: 'abc.es', count: 54 },
+  { _id: 'El Norte de Castilla', count: 47 },
+  { _id: 'mallorcadiario.com', count: 5 },
+  { _id: 'HOLA', count: 1 },
+  { _id: 'El Día de Segovia', count: 5 },
+  { _id: 'IPMARK', count: 1 },
+  { _id: 'valenciaplaza.com', count: 16 },
+  { _id: 'segre.com', count: 4 },
+  { _id: 'El Comercio', count: 35 },
+  { _id: 'elperiodicodearagon.com', count: 41 },
+  { _id: 'topcomunicacion.com', count: 1 },
+  { _id: 'dircomfidencial.com', count: 3 },
+  { _id: 'elreferente.es', count: 1 },
+  { _id: 'elnortedecastilla.es', count: 28 },
+  { _id: 'Sport', count: 6 },
+  { _id: 'hispanidad.com', count: 18 },
+  { _id: 'El Periódico', count: 34 },
+  { _id: 'ABC', count: 355 },
+  { _id: 'europasur.es', count: 46 },
+  { _id: 'tarragona21.com', count: 1 },
+  { _id: 'ultimahora.es', count: 25 },
+  { _id: 'lavozdigital.es', count: 13 },
+  { _id: 'La Tribuna de Ciudad Real', count: 12 },
+  { _id: 'elnacional.cat', count: 34 },
+  { _id: 'cuatro.com/noticias', count: 5 },
+  { _id: 'elindependiente.com', count: 16 },
+  { _id: 'alicanteplaza.es', count: 10 },
+  { _id: 'laprovincia.es', count: 19 },
+  { _id: 'eixdiari.cat', count: 1 },
+  { _id: 'La Región', count: 14 },
+  { _id: 'heraldo.es', count: 31 },
+  { _id: 'lanzadigital.com', count: 35 },
+  { _id: 'diariodecadiz.es', count: 22 },
+  { _id: 'La Voz de Galicia', count: 31 },
+  { _id: 'diariodelaltoaragon.es', count: 3 },
+  { _id: 'preferente.com', count: 4 },
+  { _id: 'La Rioja', count: 13 },
+  { _id: 'El Punt Avui', count: 2 },
+  { _id: 'dirigentesdigital.com', count: 2 },
+  { _id: 'ideal.es', count: 19 },
+  { _id: 'confilegal.com', count: 1 },
+  { _id: 'expansion.com', count: 8 },
+  { _id: 'diariodeibiza.es', count: 10 },
+  { _id: 'elmundofinanciero.com', count: 7 },
+  { _id: 'huffingtonpost.es', count: 36 },
+  { _id: 'elespanol.com', count: 94 },
+  { _id: 'Diari de Girona', count: 2 },
+  { _id: 'Computer Hoy', count: 1 },
+  { _id: 'prnoticias.com', count: 7 },
+  { _id: 'consalud.es', count: 6 },
+  { _id: 'lasprovincias.es', count: 33 },
+  { _id: 'El Mundo  - El Correo de Burgos', count: 36 },
+  { _id: 'elcorreogallego.es', count: 3 },
+  { _id: 'sport.es', count: 35 },
+  { _id: 'latribunadeciudadreal.es', count: 17 },
+  { _id: 'elcomercio.es', count: 14 },
+  { _id: 'noticiasdenavarra.com', count: 6 },
+  { _id: 'Diario de Noticias', count: 21 },
+  { _id: 'lne.es', count: 11 },
+  { _id: 'racocatala.cat', count: 1 },
+  { _id: 'hosteltur.com', count: 3 },
+  { _id: 'cincodias.com', count: 11 },
+  { _id: 'Diario de Navarra', count: 25 },
+  { _id: 'mundodeportivo.com', count: 28 },
+  { _id: 'infosalus.com', count: 6 },
+  { _id: 'diariodejerez.es', count: 48 },
+  { _id: 'El Día de Valladolid', count: 4 },
+  { _id: 'Deia', count: 21 },
+  { _id: 'diariocritico.com', count: 6 },
+  { _id: 'eladelantado.com', count: 4 },
+  { _id: 'Diario de Pontevedra', count: 21 },
+  { _id: 'El Ideal Gallego', count: 7 },
+  { _id: 'marca.com', count: 55 },
+  { _id: 'Granada Hoy', count: 4 },
+  { _id: 'El Nuevo Lunes', count: 4 },
+  { _id: 'elperiodicoextremadura.com', count: 39 },
+  { _id: 'laopiniondezamora.es', count: 9 },
+  { _id: 'atlantico.net', count: 2 },
+  { _id: 'Agencia de noticias EUROPA PRESS', count: 297 },
+  { _id: 'modaes.es', count: 1 },
+  { _id: 'elplural.com', count: 33 },
+  { _id: 'eleconomista.es', count: 24 },
+  { _id: 'libertaddigital.com', count: 28 },
+  { _id: 'navarraconfidencial.com', count: 2 },
+  { _id: 'La Tribuna de Cuenca', count: 11 }
+]
+
+
+ // TIME STATS
+ 
+
+INICIO Y FINAL DE LAS CLAIMS DE MALDITA
+[
+  {
+    _id: ObjectId("63a1d31533a596038ca93884"),
+    date: ISODate("2022-08-22T11:40:00.000Z")
+  }
+]
+[
+  {
+    _id: ObjectId("63a1d32933a596038ca93a33"),
+    date: ISODate("2022-12-20T14:40:07.000Z")
+  }
+]
+ 
+
+INICIO Y FINAL DE LAS CLAIMS DE GOOGLE
+[
+  {
+    _id: ObjectId("63a1cf7e6eb0a8abf0993023"),
+    date: ISODate("2022-08-23T00:00:00.000Z")
+  }
+]
+[
+  {
+    _id: ObjectId("63a1cf7d6eb0a8abf0992f1b"),
+    date: ISODate("2022-12-19T00:00:00.000Z")
+  }
+]
+ 
+
+INICIO Y FINAL DE LOS TWEETS
+[
+  {
+    _id: ObjectId("63a1e5846fa02fd2fb90c26b"),
+    date: ISODate("2022-08-15T00:00:22.000Z")
+  }
+]
+[
+  {
+    _id: ObjectId("63a202976fa02fd2fba01ed6"),
+    date: ISODate("2022-12-19T23:59:49.000Z")
+  }
+]
+ 
+
+INICIO Y FINAL DE LAS NOTICIAS
+[
+  {
+    _id: ObjectId("63d7acc5bf68e68465fea187"),
+    date: ISODate("2022-08-11T00:00:00.000Z")
+  }
+]
+[
+  {
+    _id: ObjectId("63d7ac1901b33a9cbc8959c3"),
+    date: ISODate("2022-12-12T00:00:00.000Z")
+  }
+]

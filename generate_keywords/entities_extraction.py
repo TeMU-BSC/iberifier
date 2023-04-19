@@ -225,13 +225,15 @@ def main():
 
     dict_loaded_models = load_all_models(dict_models)
     #logger.debug(dict_loaded_models)
-    for col in ['maldita', 'google']:
+    for col in ['maldita']:#, 'google']:
         logger.info(f'{col}: NER & POS')
         for info in get_documents(db, col, col_keywords, fields[col]):
 
             fact_id = info['fact_id']
             url = info['url']
             date = info['date']
+            calification = info['calification']
+            categories = info['categories']
 
             try:
                 reviewer = info['reviewer']
@@ -273,6 +275,8 @@ def main():
                     col_keywords,
                     fact_id,
                     url,
+                    calification=calification,
+                    categories=categories,
                     date=date,
                     claim=claim,
                     urls_claim=urls_claim,

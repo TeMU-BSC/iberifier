@@ -59,6 +59,7 @@ def select_messages_timeframe(time, messages, timeframe, source):
     # time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S%z")
     x = time - timedelta(days=timeframe)
     y = time + timedelta(days=timeframe)
+    #print(time, messages, timeframe, source, x, y)
     selection = list(messages.find({source["date"]: {"$gt": x, "$lt": y}})) # also filter by related to
     return selection
 
@@ -93,6 +94,7 @@ def similar_messages(c_vec, m_vecs, threshold):
     similar_messages = []
     for i, m in enumerate(m_vecs):
         sim = similarity_calculation(c_vec, m)
+        print(sim)
         if sim > threshold:
             similar_messages.append(i)
     return similar_messages
@@ -131,9 +133,7 @@ def get_messages(db, claim, args):
         else:
             source_keys = get_source_keys(args.source)
 
-    messages_in_frame = select_messages_timeframe(
-        claim["date"], collection_messages, args.timeframe, source_keys
-    )
+    messages_in_frame = select_messages_timeframe(claim["date"], collection_messages, args.timeframe, source_keys)
     print(len(messages_in_frame))
     return messages_in_frame, source_keys
 

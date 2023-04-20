@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
@@ -8,6 +9,8 @@ from bson.objectid import ObjectId
 
 from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer, util
+from sent2vec.vectorizer import Vectorizer
+from scipy import spatial
 
 # Logging options
 import logging
@@ -56,48 +59,16 @@ def get_arguments(parser):
 
 
 def select_messages_timeframe(time, messages, timeframe, source):
-    # time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S%z")
     x = time - timedelta(days=timeframe)
     y = time + timedelta(days=timeframe)
-    #print(time, messages, timeframe, source, x, y)
+    print(time, messages, timeframe, source, x, y)
     selection = list(messages.find({source["date"]: {"$gt": x, "$lt": y}})) # also filter by related to
     return selection
 
-
-def mbert_vectorizer(text, model):
-    # Compute embedding for both lists
-    vector = model.encode(text, convert_to_tensor=True)
-    return vector
-
-
-def vectorize_claim(claim, model):
-    text = claim["text"]
-    vector = mbert_vectorizer(text, model)
-    return vector
-
-
-def vectorize_messages(messages, model, source):
-    vectors = []
-    for m in messages:
-        vector = mbert_vectorizer(m[source["text"]], model)
-        vectors.append(vector)
+def vectorize(sentences, vectorizer):
+    vectorizer.run(sentences)
+    vectors = vectorizer.vectors
     return vectors
-
-
-def similarity_calculation(vec_1, vec_2):
-    sim = util.pytorch_cos_sim(vec_1, vec_2)
-    # print(sim)
-    return sim
-
-
-def similar_messages(c_vec, m_vecs, threshold):
-    similar_messages = []
-    for i, m in enumerate(m_vecs):
-        sim = similarity_calculation(c_vec, m)
-        print(sim)
-        if sim > threshold:
-            similar_messages.append(i)
-    return similar_messages
 
 
 # TODO: in some cases we might also be interested in the body
@@ -107,7 +78,7 @@ def get_source_keys(source):
     if source == "telegram":
         source_keys["date"] = "date"
         source_keys["text"] = "message"
-    elif source == "tweets":
+    elif source == "tweets" or source == "tweets_new_call_strat":
         source_keys["date"] = "date"
         source_keys["text"] = "text"
     elif source == "lusa":
@@ -118,30 +89,38 @@ def get_source_keys(source):
         source_keys["text"] = "Title"
     return source_keys
 
+def get_list_ids(db, source, claim_id, dates_limit=False, timeframe=False):
+    collection = db[source]
+    if dates_limit: # TODO: this has not been tried yet
+        x = dates_limit - timedelta(days=timeframe)
+        y = dates_limit + timedelta(days=timeframe)
+        results = list(collection.find({source["date"]: {"$gt": x, "$lt": y}}))
+    else:
+        results = [i['_id'] for i in collection.find({'fact_id': claim_id})]
+    return results
+
 def get_messages(db, claim, args):
     if args.source == "telegram":
         db_telegram = mongo_utils.get_mongo_db("telegram_observer")
-        collection_messages = db_telegram["messages"]
         source_keys = get_source_keys(args.source)
+        list_ids = get_list_ids(db_telegram, "messages", claim['_id'], dates_limit=claim['date'], timeframe=7)
+        tqdm_length = len(list_ids)
     else:
-        collection_messages = db[args.source]
-        if len(list(collection_messages.find())) == 0:
-            print(
-                "This data does not exist, we currently have the collections:", db.list_collection_names()
-            )
-            return
-        else:
-            source_keys = get_source_keys(args.source)
+        source_keys = get_source_keys(args.source)
+        list_ids = get_list_ids(db, args.source, claim['_id'])
+        tqdm_length = len(list_ids)
+    cursor = db[args.source].find({'_id': {"$in": list_ids}}, batch_size=1)
+    for record in tqdm.tqdm(cursor, total=tqdm_length):
+        yield record, source_keys
+    cursor.close()
 
-    messages_in_frame = select_messages_timeframe(claim["date"], collection_messages, args.timeframe, source_keys)
-    print(len(messages_in_frame))
-    return messages_in_frame, source_keys
 
 def main():
     parser = argparse.ArgumentParser()
     parser = get_arguments(parser)
     args = parser.parse_args()
     print(args)
+    method = 'SentenceTransformers'
 
     # connect to the mongo db
     logger.info("Connecting to the db")
@@ -154,30 +133,47 @@ def main():
     elif args.period:
         print('not implemented')
         exit()
-        claim = collection.find_one(
-            {"date": {"$gt": datetime(2021, 11, 1), "$lt": datetime(2021, 11, 30)}} # not implemented yet
-        )
     else:
         claim = collection.find_one()
     print(claim)
 
-    # get all the messages from the source
-    messages_in_frame, source_keys = get_messages(db_iberifier, claim, args)
-    #for i in messages_in_frame:
-    #   print(i)
-    #exit()
-    # evaluate how close the messages are and assess the threshold of similarity
-    model = SentenceTransformer("AIDA-UPM/mstsb-paraphrase-multilingual-mpnet-base-v2")
-    c_vec = vectorize_claim(claim, model)
-    m_vecs = vectorize_messages(messages_in_frame, model, source_keys)
-    threshold = args.threshold
-    print(threshold)
-    relevant_indices = similar_messages(c_vec, m_vecs, threshold)
-    print(len(relevant_indices))
+    # calculate the distance to all the related info
+    distances = []
+    texts = []
+    if method == 'sent2vec':
+        model = Vectorizer(pretrained_weights='PlanTL-GOB-ES/roberta-base-bne')
+        print('This method does not work properly')
+    else:
+        model = SentenceTransformer('sentence-transformers/stsb-xlm-r-multilingual')
+        #'sentence-transformers/distiluse-base-multilingual-cased')
+        #'hiiamsid/sentence_similarity_spanish_es')
 
-    for i, m in enumerate(messages_in_frame):
-        if i in relevant_indices:
-            print(m[source_keys["text"]], m["_id"])
+    for doc,source_keys in get_messages(db_iberifier, claim, args):
+
+        if method == 'sent2vec':
+            # c_vec = vectorize([claim['text']], model)[0]
+            # m_vec = vectorize([doc[source_keys['text']]], model)[0]
+            # dist_1 = spatial.distance.cosine(c_vec, m_vec)
+            # dist_2 = spatial.distance.cosine(c_vec, m_vec)
+            # print('dist_1: {0}, dist_2: {1}'.format(dist_1, dist_2))
+            print('This method does not work properly')
+            exit()
+
+        if method == 'SentenceTransformers':
+            embeddings = model.encode([claim['text'], doc[source_keys['text']]])
+            dist = spatial.distance.cosine(embeddings[0], embeddings[1])
+            distances.append(dist)
+            texts.append(doc[source_keys['text']])
+
+    print('\n TOP RELATED:')
+    indexes = [i[1] for i in sorted([(x, i) for (i, x) in enumerate(distances)])][:5]
+    for val in indexes:
+        print(texts[val], distances[val])
+
+    print('\n TOP NOT RELATED:')
+    indexes = [i[1] for i in sorted([(x, i) for (i, x) in enumerate(distances)])[-5:]]
+    for val in indexes:
+        print(texts[val], distances[val])
 
 
 if __name__ == "__main__":

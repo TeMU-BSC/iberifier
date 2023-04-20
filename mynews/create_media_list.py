@@ -181,4 +181,5 @@ def main():
             out.write(line+'\n')
 
 
-main()
+if __name__ == "__main__":
+    main()

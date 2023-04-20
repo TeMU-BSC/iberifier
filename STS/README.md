@@ -2,5 +2,7 @@
 How to run example:
 
 ```
-python STS/dates_STS_filter.py --claim 638633ee12a39500fa09abe3 --source telegram --threshold 0 --timeframe 1 --collection google
+python STS/dates_STS_filter.py --claim 642cba1057d061f04cd7b324 --source mynews --collection maldita
+
+python STS/dates_STS_filter.py --claim 642cba1057d061f04cd7b324 --source tweets_new_call_strat --collection maldita
 ```

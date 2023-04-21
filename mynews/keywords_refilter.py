@@ -89,6 +89,8 @@ def main():
                     break
             if found_key:
                 mynews_collection.update_one({"_id": doc['_id']},{"$set": {"keywords_in_title": True}})
+            else:
+                mynews_collection.update_one({"_id": doc['_id']}, {"$set": {"keywords_in_title": False}})
         keywords_collection.update_one({"_id": claim},{"$set": {"filtered_mynews_by_keywords": datetime.now()}})
         print(count)
 

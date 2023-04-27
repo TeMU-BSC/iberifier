@@ -2,7 +2,6 @@
 import json
 import sys
 from sentence_transformers import SentenceTransformer, util
-#from scipy import spatial
 import numpy as np
 import matplotlib.pyplot as plt
 from transformers import pipeline, AutoTokenizer
@@ -103,8 +102,6 @@ def main():
         if model_source != 'supervised_sts':
             for line in data:
                 if label == line['label_eng']:
-                    #embeddings = model.encode([line['claim'], line['text']])
-                    #dist = spatial.distance.cosine(embeddings[0], embeddings[1])
                     embeddings = model.encode([line['claim'], line['text']], convert_to_tensor=True)
                     sim = util.cos_sim(embeddings[0], embeddings[1])
                     sts_values.append(float(sim))
@@ -156,7 +153,7 @@ def main():
             pc.set_alpha(0.8)
             pc.set_edgecolor('grey')
 
-        plt.savefig(source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
+        plt.savefig('plots/'+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
 
 
 

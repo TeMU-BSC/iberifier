@@ -1,0 +1,72 @@
+xlm_multi news
+The text disseminates the false claim 0.5501727387309074 8
+The text is about the claim, but it does not support it 0.5434351498666017 46
+The text is on topic but not about this precise claim 0.4575471801757813 125
+The text is on another topic 0.21138334898278116 125
+The text is not readable 0.3122808337211609 1
+[[ 1.         -0.69954616]
+ [-0.69954616  1.        ]]
+0.37512883228305427 0.875787000088676
+xlm_multi tweets
+The text disseminates the false claim 0.7067841711644847 166
+The text is about the claim, but it does not support it 0.4983028823032451 199
+The text is on topic but not about this precise claim 0.49554332367538867 222
+The text is on another topic 0.373891902406833 875
+The text is not readable 0.4097355827689171 8
+[[ 1.         -0.54120825]
+ [-0.54120825  1.        ]]
+0.4834165366531712 0.7317193399457094
+distiluse_multi news
+The text disseminates the false claim 0.4205809682607651 8
+The text is about the claim, but it does not support it 0.5785947215297947 46
+The text is on topic but not about this precise claim 0.4417314032316208 125
+The text is on another topic 0.13894674915261568 125
+The text is not readable 0.3542998731136322 1
+[[ 1.         -0.74086747]
+ [-0.74086747  1.        ]]
+0.3418369872113943 0.9132748071295558
+distiluse_multi tweets
+The text disseminates the false claim 0.6345903707039823 166
+The text is about the claim, but it does not support it 0.48755615536619595 199
+The text is on topic but not about this precise claim 0.4403362798059846 222
+The text is on another topic 0.3228977377411377 875
+The text is not readable 0.37177295982837677 8
+[[ 1.         -0.54433915]
+ [-0.54433915  1.        ]]
+0.5112782462890334 0.7439839404538886
+spanish news
+The text disseminates the false claim 0.38522589951753616 8
+The text is about the claim, but it does not support it 0.6312088405956393 46
+The text is on topic but not about this precise claim 0.4364610916376114 125
+The text is on another topic 0.15817424911726266 125
+The text is not readable 0.4638148248195648 1
+[[ 1.         -0.72298584]
+ [-0.72298584  1.        ]]
+0.29004724406421145 0.8785802961780615
+spanish tweets
+The text disseminates the false claim 0.5356538326827338 166
+The text is about the claim, but it does not support it 0.4312911598227132 199
+The text is on topic but not about this precise claim 0.44067307528074795 222
+The text is on another topic 0.30526775209552476 875
+The text is not readable 0.3378132088109851 8
+[[ 1.         -0.47925418]
+ [-0.47925418  1.        ]]
+0.43259449873291866 0.7250506925245166
+supervised_sts news
+The text disseminates the false claim 0.7494985088706017 8
+The text is about the claim, but it does not support it 0.8958001084949659 46
+The text is on topic but not about this precise claim 0.8013238105773925 125
+The text is on another topic 0.721864905834198 125
+The text is not readable 0.8114041090011597 1
+[[ 1.         -0.51867952]
+ [-0.51867952  1.        ]]
+0.8031442437974701 0.7315775472200053
+supervised_sts tweets
+The text disseminates the false claim 0.8825640811259488 166
+The text is about the claim, but it does not support it 0.8666785173679716 199
+The text is on topic but not about this precise claim 0.7990278580167272 222
+The text is on another topic 0.7211904147693089 875
+The text is not readable 0.8097631260752678 8
+[[ 1.        -0.6621464]
+ [-0.6621464  1.       ]]
+0.8208671929892064 0.8016152152816498

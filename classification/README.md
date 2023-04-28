@@ -10,6 +10,17 @@ python classification/dates_STS_filter.py --claim 642cba1057d061f04cd7b324 --sou
 How to compare evaluations to STS models and choose the best threshold:
 
 ```
-cd classification
 sh compare_sts_models.sh
+```
+
+Finer classification of the texts using textual entailment (only for tweets):
+
+```
+sh compare_te_models.sh
+```
+
+Finer classification of the texts comparing STS scores from claim to text and from fact-check to text (only for tweets):
+
+```
+python sts_finer_classification.py
 ```

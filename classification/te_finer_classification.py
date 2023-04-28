@@ -1,0 +1,70 @@
+
+import json
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from transformers import pipeline
+from sklearn.metrics import balanced_accuracy_score, confusion_matrix
+import seaborn as sns
+
+def main():
+    source = sys.argv[1] # news tweets
+    model_source =  sys.argv[2]
+
+    with open('../data/eval_'+source+'.jsonl') as f:
+        data = []
+        for line in f:
+            data.append(json.loads(line))
+
+
+    print(model_source, source)
+    if model_source == 'recognai':
+        model = pipeline("text-classification", model="Recognai/bert-base-spanish-wwm-cased-xnli", truncation=True)
+        te_labels = ['entailment', 'contradiction', 'neutral']
+    elif model_source == 'roberta':
+        model = pipeline("text-classification", model="PlanTL-GOB-ES/roberta-large-bne-te", truncation=True)
+        te_labels = ['entailment', 'contradiction', 'not_entailment']
+    elif model_source == 'xlm':
+        model = pipeline("text-classification", model="tuni/xlm-roberta-large-xnli-finetuned-mnli", truncation=True)
+        te_labels = ['entailment', 'contradiction', 'neutral']
+    else:
+        print('There is no such model.')
+        exit()
+
+    mapping_labels = {'The text disseminates the false claim': te_labels[0],
+                      'The text is about the claim, but it does not support it': te_labels[1],
+                      'The text is on topic but not about this precise claim': te_labels[2],
+                      'The text is on another topic': 0,
+                      'The text is not readable': 0}
+
+    all_p_labels = []
+    all_labels = []
+    #all_values = []
+    for label, value in mapping_labels.items():
+        if value != 0:
+            sentences = []
+            for line in data:
+                if label == line['label_eng']:
+                    sentences.append(line['claim']+' '+line['text'])
+                    all_labels.append(mapping_labels[label])
+                    #all_values.append(value)
+            predictions = model(sentences)
+            p_labels = [line['label'] for line in predictions]
+            #p_labels = ["1" for i in range(len(sentences))]
+            all_p_labels.extend(p_labels)
+
+    print(set(all_p_labels), len(all_p_labels))
+    print(set(all_labels), len(all_labels))
+    cf_matrix = confusion_matrix(all_labels, all_p_labels, labels=te_labels)
+    print(cf_matrix)
+    sns_plot = sns.heatmap(cf_matrix, xticklabels=te_labels, yticklabels=te_labels)
+    fig = sns_plot.get_figure()
+    fig.savefig("plots/te_heatmap_"+source+"_"+model_source+".png")
+
+
+
+
+
+if __name__ == "__main__":
+    main()

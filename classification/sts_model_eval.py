@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import matplotlib.pyplot as plt
 from transformers import pipeline, AutoTokenizer
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
 def prepare(sentence_pairs, tokenizer):
     sentence_pairs_prep = []
@@ -23,14 +23,16 @@ def choose_thresholds(upper_boundary, lower_boundary, trials):
             thresholds.append(threshold_attempt)
     return thresholds
 
-def calculate_accuracy(threshold, values, labels):
+def calculate_accuracy(threshold, values, labels, report=False):
     predicted_labels = []
     for v in values:
         if v > threshold:
             predicted_labels.append(1)
         elif v <= threshold:
             predicted_labels.append(0)
-    return balanced_accuracy_score(labels, predicted_labels)
+    if report:
+        print(classification_report(labels, predicted_labels))
+    return accuracy_score(labels, predicted_labels)
 
 def maximize_accuracy(values, labels, trials=5):
     negative_values = []
@@ -50,12 +52,12 @@ def maximize_accuracy(values, labels, trials=5):
         if accuracy > best_accuracy:
             best_threshold = t
             best_accuracy = accuracy
+    calculate_accuracy(best_threshold, values, labels, report = True)
     return best_threshold, best_accuracy
 
 def main():
     source = sys.argv[1] # news tweets
     model_source = sys.argv[2]
-    inform = True
     plot = True
 
     with open('../data/eval_'+source+'.jsonl') as f:
@@ -71,15 +73,15 @@ def main():
 
     mapping_labels = {'The text disseminates the false claim': 1,
                       'The text is about the claim, but it does not support it': 1,
-                      'The text is on topic but not about this precise claim': 1,
+                      'The text is on topic but not about this precise claim': 1, # change to 0
                       'The text is on another topic': 0,
                       'The text is not readable': 0}
 
     print(model_source, source)
-    if model_source == 'xlm_multi':
-        model = SentenceTransformer('sentence-transformers/stsb-xlm-r-multilingual')
-    elif model_source == 'distiluse_multi':
-        model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased')
+    if model_source == 'distiluse_multi': # why these models? https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models
+        model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v1')
+    elif model_source == 'paraph':
+        model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
     elif model_source == 'spanish':
         model = SentenceTransformer('hiiamsid/sentence_similarity_spanish_es')
     elif model_source == 'supervised_sts':
@@ -121,17 +123,15 @@ def main():
 
 
         print(label, np.mean(sts_values), len(sts_values))
-        if inform:
-            all_sts_values.extend(sts_values)
-            all_label_values.extend(label_values)
-            all_ordinal.extend(ordinal)
+        all_sts_values.extend(sts_values)
+        all_label_values.extend(label_values)
+        all_ordinal.extend(ordinal)
         if plot:
             appended_all_sts_values.append(sts_values)
 
-    if inform:
-        print(np.corrcoef(all_sts_values, all_ordinal))
-        threshold, accuracy = maximize_accuracy(all_sts_values, all_label_values)
-        print(threshold, accuracy)
+    print(np.corrcoef(all_sts_values, all_ordinal))
+    threshold, accuracy = maximize_accuracy(all_sts_values, all_label_values)
+    print(threshold, accuracy)
 
     if plot:
         f = plt.figure()
@@ -146,14 +146,18 @@ def main():
         plt.yticks([1,2,3,4,5],
                    list(mapping_labels.keys())[::-1])
         for i, pc in enumerate(violin_plot["bodies"], 1):
-            if i <= 2:
+            if i <= 2: # change to 3
                 pc.set_facecolor('#101E4A')
             else:
                 pc.set_facecolor('#FFDD4A')
             pc.set_alpha(0.8)
             pc.set_edgecolor('grey')
 
-        plt.savefig('plots/'+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
+        plt.vlines(x=threshold, ymin=0, ymax=5.5, colors='grey')
+        plt.annotate('Accuracy '+str(accuracy), (0, 0), (140, 5),
+                     fontsize=10, xycoords='figure fraction', textcoords='offset points')
+
+        plt.savefig('plots/'+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05) #change to plots2
 
 
 

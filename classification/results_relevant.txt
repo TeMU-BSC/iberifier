@@ -1,0 +1,144 @@
+distiluse_multi news
+The text disseminates the false claim 0.38179953396320343 8
+The text is about the claim, but it does not support it 0.6176621091106663 46
+The text is on topic but not about this precise claim 0.4583048791885376 125
+The text is on another topic 0.1505536969387904 125
+The text is not readable 0.3953509032726288 1
+[[ 1.         -0.73873267]
+ [-0.73873267  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.91      0.94      0.93       251
+           1       0.68      0.59      0.63        54
+
+    accuracy                           0.88       305
+   macro avg       0.80      0.77      0.78       305
+weighted avg       0.87      0.88      0.88       305
+
+0.5827195053851163 0.8786885245901639
+distiluse_multi tweets
+The text disseminates the false claim 0.6039040448166519 166
+The text is about the claim, but it does not support it 0.4824188846308532 199
+The text is on topic but not about this precise claim 0.42847882236379226 222
+The text is on another topic 0.3061200355344585 875
+The text is not readable 0.34175969334319234 8
+[[ 1.         -0.55507204]
+ [-0.55507204  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.86      0.91      0.89      1105
+           1       0.67      0.55      0.60       365
+
+    accuracy                           0.82      1470
+   macro avg       0.77      0.73      0.74      1470
+weighted avg       0.81      0.82      0.82      1470
+
+0.5376696698112439 0.8217687074829932
+spanish news
+The text disseminates the false claim 0.38522589951753616 8
+The text is about the claim, but it does not support it 0.6312088405956393 46
+The text is on topic but not about this precise claim 0.4364610916376114 125
+The text is on another topic 0.15817424911726266 125
+The text is not readable 0.4638148248195648 1
+[[ 1.         -0.72298584]
+ [-0.72298584  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.95      0.75      0.84       126
+           1       0.85      0.97      0.91       179
+
+    accuracy                           0.88       305
+   macro avg       0.90      0.86      0.87       305
+weighted avg       0.89      0.88      0.88       305
+
+0.22532360601812715 0.8819672131147541
+spanish tweets
+The text disseminates the false claim 0.5356538326827338 166
+The text is about the claim, but it does not support it 0.4312911598227132 199
+The text is on topic but not about this precise claim 0.44067307528074795 222
+The text is on another topic 0.30526775209552476 875
+The text is not readable 0.3378132088109851 8
+[[ 1.         -0.47925418]
+ [-0.47925418  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.76      0.87      0.81       883
+           1       0.75      0.58      0.65       587
+
+    accuracy                           0.76      1470
+   macro avg       0.75      0.73      0.73      1470
+weighted avg       0.75      0.76      0.75      1470
+
+0.43259449873291866 0.7551020408163265
+supervised_sts news
+The text disseminates the false claim 0.7494985088706017 8
+The text is about the claim, but it does not support it 0.8958001084949659 46
+The text is on topic but not about this precise claim 0.8013238105773925 125
+The text is on another topic 0.721864905834198 125
+The text is not readable 0.8114041090011597 1
+[[ 1.         -0.51867952]
+ [-0.51867952  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.78      0.55      0.64       126
+           1       0.74      0.89      0.81       179
+
+    accuracy                           0.75       305
+   macro avg       0.76      0.72      0.72       305
+weighted avg       0.75      0.75      0.74       305
+
+0.7225755344307612 0.7475409836065574
+supervised_sts tweets
+The text disseminates the false claim 0.8825640811259488 166
+The text is about the claim, but it does not support it 0.8666785173679716 199
+The text is on topic but not about this precise claim 0.7990278580167272 222
+The text is on another topic 0.7211904147693089 875
+The text is not readable 0.8097631260752678 8
+[[ 1.        -0.6621464]
+ [-0.6621464  1.       ]]
+              precision    recall  f1-score   support
+
+           0       0.81      0.94      0.87       883
+           1       0.88      0.66      0.76       587
+
+    accuracy                           0.83      1470
+   macro avg       0.85      0.80      0.81      1470
+weighted avg       0.84      0.83      0.82      1470
+
+0.8208671929892064 0.8299319727891157
+paraph news
+The text disseminates the false claim 0.6452228799462318 8
+The text is about the claim, but it does not support it 0.6550808302734209 46
+The text is on topic but not about this precise claim 0.49866959428787233 125
+The text is on another topic 0.22593128447979688 125
+The text is not readable 0.57075035572052 1
+[[ 1.         -0.76178029]
+ [-0.76178029  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.77      0.95      0.85       126
+           1       0.96      0.80      0.88       179
+
+    accuracy                           0.87       305
+   macro avg       0.87      0.88      0.86       305
+weighted avg       0.88      0.87      0.87       305
+
+0.418715894330695 0.8655737704918033
+paraph tweets
+The text disseminates the false claim 0.723953099405191 166
+The text is about the claim, but it does not support it 0.550170077656831 199
+The text is on topic but not about this precise claim 0.5776566092157212 222
+The text is on another topic 0.3782645690999925 875
+The text is not readable 0.510667385533452 8
+[[ 1.         -0.59636946]
+ [-0.59636946  1.        ]]
+              precision    recall  f1-score   support
+
+           0       0.81      0.92      0.86       883
+           1       0.84      0.68      0.76       587
+
+    accuracy                           0.82      1470
+   macro avg       0.83      0.80      0.81      1470
+weighted avg       0.83      0.82      0.82      1470
+
+0.5636609062800428 0.8238095238095238

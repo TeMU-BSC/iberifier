@@ -13,13 +13,13 @@ How to compare evaluations to STS models and choose the best threshold:
 sh compare_sts_models.sh
 ```
 
-Finer classification of the texts using textual entailment (only for tweets):
+Finer classification of the texts using textual entailment (three-way classification, only for tweets):
 
 ```
 sh compare_te_models.sh
 ```
 
-Finer classification of the texts comparing STS scores from claim to text and from fact-check to text (only for tweets):
+Finer classification of the texts comparing STS scores from claim to text and from fact-check to text (two-way classification, only for tweets):
 
 ```
 python sts_finer_classification.py

@@ -44,14 +44,14 @@ The text is not readable 0.4638148248195648 1
  [-0.72298584  1.        ]]
               precision    recall  f1-score   support
 
-           0       0.95      0.75      0.84       126
-           1       0.85      0.97      0.91       179
+           0       0.92      0.90      0.91       251
+           1       0.58      0.61      0.59        54
 
-    accuracy                           0.88       305
-   macro avg       0.90      0.86      0.87       305
-weighted avg       0.89      0.88      0.88       305
+    accuracy                           0.85       305
+   macro avg       0.75      0.76      0.75       305
+weighted avg       0.86      0.85      0.85       305
 
-0.22532360601812715 0.8819672131147541
+0.5947669233988833 0.8524590163934426
 spanish tweets
 The text disseminates the false claim 0.5356538326827338 166
 The text is about the claim, but it does not support it 0.4312911598227132 199
@@ -62,14 +62,14 @@ The text is not readable 0.3378132088109851 8
  [-0.47925418  1.        ]]
               precision    recall  f1-score   support
 
-           0       0.76      0.87      0.81       883
-           1       0.75      0.58      0.65       587
+           0       0.84      0.85      0.84      1105
+           1       0.52      0.51      0.51       365
 
     accuracy                           0.76      1470
-   macro avg       0.75      0.73      0.73      1470
-weighted avg       0.75      0.76      0.75      1470
+   macro avg       0.68      0.68      0.68      1470
+weighted avg       0.76      0.76      0.76      1470
 
-0.43259449873291866 0.7551020408163265
+0.4787547315891883 0.7625850340136054
 supervised_sts news
 The text disseminates the false claim 0.7494985088706017 8
 The text is about the claim, but it does not support it 0.8958001084949659 46
@@ -80,14 +80,14 @@ The text is not readable 0.8114041090011597 1
  [-0.51867952  1.        ]]
               precision    recall  f1-score   support
 
-           0       0.78      0.55      0.64       126
-           1       0.74      0.89      0.81       179
+           0       0.93      0.89      0.91       251
+           1       0.57      0.67      0.62        54
 
-    accuracy                           0.75       305
-   macro avg       0.76      0.72      0.72       305
-weighted avg       0.75      0.75      0.74       305
+    accuracy                           0.85       305
+   macro avg       0.75      0.78      0.76       305
+weighted avg       0.86      0.85      0.86       305
 
-0.7225755344307612 0.7475409836065574
+0.8741257974395046 0.8524590163934426
 supervised_sts tweets
 The text disseminates the false claim 0.8825640811259488 166
 The text is about the claim, but it does not support it 0.8666785173679716 199
@@ -98,14 +98,14 @@ The text is not readable 0.8097631260752678 8
  [-0.6621464  1.       ]]
               precision    recall  f1-score   support
 
-           0       0.81      0.94      0.87       883
-           1       0.88      0.66      0.76       587
+           0       0.93      0.95      0.94      1105
+           1       0.85      0.80      0.82       365
 
-    accuracy                           0.83      1470
-   macro avg       0.85      0.80      0.81      1470
-weighted avg       0.84      0.83      0.82      1470
+    accuracy                           0.91      1470
+   macro avg       0.89      0.88      0.88      1470
+weighted avg       0.91      0.91      0.91      1470
 
-0.8208671929892064 0.8299319727891157
+0.8466164667652316 0.9149659863945578
 paraph news
 The text disseminates the false claim 0.6452228799462318 8
 The text is about the claim, but it does not support it 0.6550808302734209 46
@@ -116,14 +116,14 @@ The text is not readable 0.57075035572052 1
  [-0.76178029  1.        ]]
               precision    recall  f1-score   support
 
-           0       0.77      0.95      0.85       126
-           1       0.96      0.80      0.88       179
+           0       0.90      0.96      0.93       251
+           1       0.72      0.52      0.60        54
 
-    accuracy                           0.87       305
-   macro avg       0.87      0.88      0.86       305
-weighted avg       0.88      0.87      0.87       305
+    accuracy                           0.88       305
+   macro avg       0.81      0.74      0.77       305
+weighted avg       0.87      0.88      0.87       305
 
-0.418715894330695 0.8655737704918033
+0.6536203931879114 0.8786885245901639
 paraph tweets
 The text disseminates the false claim 0.723953099405191 166
 The text is about the claim, but it does not support it 0.550170077656831 199
@@ -134,11 +134,11 @@ The text is not readable 0.510667385533452 8
  [-0.59636946  1.        ]]
               precision    recall  f1-score   support
 
-           0       0.81      0.92      0.86       883
-           1       0.84      0.68      0.76       587
+           0       0.87      0.91      0.89      1105
+           1       0.69      0.58      0.63       365
 
-    accuracy                           0.82      1470
-   macro avg       0.83      0.80      0.81      1470
-weighted avg       0.83      0.82      0.82      1470
+    accuracy                           0.83      1470
+   macro avg       0.78      0.75      0.76      1470
+weighted avg       0.82      0.83      0.82      1470
 
-0.5636609062800428 0.8238095238095238
+0.6292056437122495 0.8299319727891157

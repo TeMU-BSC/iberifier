@@ -59,6 +59,7 @@ def main():
     source = sys.argv[1] # news tweets
     model_source = sys.argv[2]
     plot = True
+    relevant = True
 
     with open('../data/eval_'+source+'.jsonl') as f:
         data = []
@@ -76,6 +77,8 @@ def main():
                       'The text is on topic but not about this precise claim': 1, # change to 0
                       'The text is on another topic': 0,
                       'The text is not readable': 0}
+    if relevant:
+        mapping_labels['The text is on topic but not about this precise claim'] = 0
 
     print(model_source, source)
     if model_source == 'distiluse_multi': # why these models? https://www.sbert.net/docs/pretrained_models.html#multi-lingual-models
@@ -88,7 +91,6 @@ def main():
         path_sts = '../../models/roberta-base-bne-sts'
         tokenizer_sts = AutoTokenizer.from_pretrained(path_sts)
         model = pipeline('text-classification', model=path_sts, tokenizer=tokenizer_sts, truncation=True)
-        # model_te = pipeline("text-classification", model="PlanTL-GOB-ES/roberta-large-bne-te")
     else:
         print('There is no such model.')
         exit()
@@ -146,7 +148,11 @@ def main():
         plt.yticks([1,2,3,4,5],
                    list(mapping_labels.keys())[::-1])
         for i, pc in enumerate(violin_plot["bodies"], 1):
-            if i <= 2: # change to 3
+            if relevant:
+                index_limit = 3
+            else:
+                index_limit = 2
+            if i <= index_limit: # change to 3
                 pc.set_facecolor('#101E4A')
             else:
                 pc.set_facecolor('#FFDD4A')
@@ -156,8 +162,12 @@ def main():
         plt.vlines(x=threshold, ymin=0, ymax=5.5, colors='grey')
         plt.annotate('Accuracy '+str(accuracy), (0, 0), (140, 5),
                      fontsize=10, xycoords='figure fraction', textcoords='offset points')
+        if relevant:
+            out_path = 'relevant_plots/'
+        else:
+            out_path = 'ontopic_plots/'
 
-        plt.savefig('plots/'+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05) #change to plots2
+        plt.savefig(out_path+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
 
 
 

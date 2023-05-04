@@ -1,24 +1,28 @@
 import sys
 import os
 import tqdm
+import yaml
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from mongo_utils import mongo_utils
-from bson.objectid import ObjectId
 
 from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline, AutoTokenizer
 
-# Logging options
-# import logging
-#
-# logger_level = "DEBUG"
-#
-# logger = logging.getLogger(__name__)
-# logger_set_level = getattr(logging, logger_level)
-# logger.setLevel(logger_set_level)
-# formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+#Logging options
+import logging
+
+logger_level = "DEBUG"
+
+logger = logging.getLogger(__name__)
+logger_set_level = getattr(logging, logger_level)
+logger.setLevel(logger_set_level)
+formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+
+config_path = os.path.join(os.path.dirname(
+    __file__), "../config", "config.yaml")
+config_all = yaml.safe_load(open(config_path))
 
 
 def get_source_keys(source):
@@ -74,17 +78,23 @@ def prepare(sentence_pairs, tokenizer):
 
 
 def main():
-    # TODO: all these should come from config
-    method = 'SentenceTransformers'
-    chosen_model = 'distiluse_multi'
-    threshold = 0.29
-    source = 'mynews'
-    date_limit = datetime(2023, 3, 15)
-    labels = ['on-topic', 'off-topic']
-    label_name = 'topic_relation'
+
+    source = sys.argv[1]
+    method = config_all["classification_params"][source]["method"]
+    chosen_model = config_all["classification_params"][source]["chosen_model"]
+    threshold = config_all["classification_params"][source]["threshold"]
+    date_limit = datetime(2023, 3, 15) #config_all["classification_params"][source]["date_limit"]
+    label_name = config_all["classification_params"][source]["label_name"]
+
+    if label_name == 'topic_relation':
+        labels = ['on-topic', 'off-topic']
+    else:
+        labels = ['','']
+        print('Such classification is not implemented.')
+
 
     # connect to the mongo db
-    #logger.info("Connecting to the db")
+    logger.info("Connecting to the db")
     db_iberifier = mongo_utils.get_mongo_db()
 
     # look for all the claims that have not been classified yet, add date limit for the search
@@ -103,22 +113,25 @@ def main():
 
     for claim_record in claims:
         for doc,source_keys in get_messages(db_iberifier, claim_record, source):
-            if method == 'SentenceTransformers':
-                embeddings = model.encode([claim_record['claim'], doc[source_keys["text"]]], convert_to_tensor=True)
-                sim = util.cos_sim(embeddings[0], embeddings[1])
-            elif method == 'supervised':
-                c_predictions = model(prepare([(claim_record['claim'], doc[source_keys["text"]])], tokenizer_sts), add_special_tokens=False)
-                sim = c_predictions[0]['score']
-            else:
-                print('There is no such method.')
-                exit()
+            try:
+                if method == 'SentenceTransformers':
+                    embeddings = model.encode([claim_record['claim'], doc[source_keys["text"]]], convert_to_tensor=True)
+                    sim = util.cos_sim(embeddings[0], embeddings[1])
+                elif method == 'supervised':
+                    c_predictions = model(prepare([(claim_record['claim'], doc[source_keys["text"]])], tokenizer_sts), add_special_tokens=False)
+                    sim = c_predictions[0]['score']
+                else:
+                    print('There is no such method.')
+                    exit()
 
-            if sim > threshold:
-                db_iberifier[source].update_one({"_id": doc['_id']},
-                                                    {"$set": {label_name: labels[0]}})
-            else:
-                db_iberifier[source].update_one({"_id": doc['_id']},
-                                                {"$set": {label_name: labels[1]}})
+                if sim > threshold:
+                    db_iberifier[source].update_one({"_id": doc['_id']},
+                                                        {"$set": {label_name: labels[0]}})
+                else:
+                    db_iberifier[source].update_one({"_id": doc['_id']},
+                                                    {"$set": {label_name: labels[1]}})
+            except KeyError:
+                print('There is no claim in this entry')
 
         # update the claim witht a tag so it does not rerun
         db_iberifier['keywords'].update_one({"_id": claim_record['_id']}, {"$set": {'sts_already_done': datetime.now()}})

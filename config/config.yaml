@@ -149,3 +149,15 @@ pipeline_params:
 logging:
   logging_filename: config_logger.yaml
   level: dev
+
+classification_params:
+  mynews:
+    method: SentenceTransformers
+    chosen_model: distiluse_multi
+    threshold: 0.29
+    label_name: topic_relation
+  tweets_new_call_strat:
+    method: supervised
+    chosen_model: supervised_sts
+    threshold: 0.82
+    label_name: topic_relation

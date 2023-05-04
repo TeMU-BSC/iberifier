@@ -1,0 +1,21 @@
+recognai tweets
+{'neutral', 'entailment', 'contradiction'} 587
+{'neutral', 'entailment', 'contradiction'} 587
+0.44293015332197616
+[[ 57  49  60]
+ [ 29 103  67]
+ [ 27  95 100]]
+roberta tweets
+{'entailment', 'contradiction', 'not_entailment'} 587
+{'contradiction', 'not_entailment', 'entailment'} 587
+0.4804088586030664
+[[ 47  25  94]
+ [ 10  84 105]
+ [ 33  38 151]]
+xlm tweets
+{'neutral', 'entailment', 'contradiction'} 587
+{'entailment', 'contradiction', 'neutral'} 587
+0.5587734241908007
+[[ 77  24  65]
+ [ 18 104  77]
+ [ 32  43 147]]

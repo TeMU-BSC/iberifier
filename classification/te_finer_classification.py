@@ -1,11 +1,8 @@
 
 import json
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 from transformers import pipeline
-from sklearn.metrics import balanced_accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix
 import seaborn as sns
 
 def main():
@@ -56,11 +53,13 @@ def main():
 
     print(set(all_p_labels), len(all_p_labels))
     print(set(all_labels), len(all_labels))
+    print(accuracy_score(all_labels, all_p_labels))
     cf_matrix = confusion_matrix(all_labels, all_p_labels, labels=te_labels)
     print(cf_matrix)
-    sns_plot = sns.heatmap(cf_matrix, xticklabels=te_labels, yticklabels=te_labels)
+    pal = sns.light_palette("seagreen", as_cmap=True)
+    sns_plot = sns.heatmap(cf_matrix, xticklabels=[1,2,3], yticklabels=te_labels, cmap=pal)
     fig = sns_plot.get_figure()
-    fig.savefig("plots/te_heatmap_"+source+"_"+model_source+".png")
+    fig.savefig("ontopic_plots/te_heatmap_"+source+"_"+model_source+".png")
 
 
 

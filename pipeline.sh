@@ -21,5 +21,7 @@ python mynews/use_api.py
 python mynews/keywords_refilter.py
 
 # classify if the tweets and news are or not on topic
-python classification/classify_db.py mynews
-python classification/classify_db.py tweets_new_call_strat
+python classification/classify_db.py mynews topic_relation
+python classification/classify_db.py tweets_new_call_strat topic_relation
+python classification/classify_db.py tweets_new_call_strat claim_relation
+

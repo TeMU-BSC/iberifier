@@ -175,7 +175,7 @@ def main():
     claims = get_claims(db_iberifier, tag, date_limit)
 
     logger.info("Classifying {} by {}".format(source, task))
-    #classify_claims(db_iberifier, claims, source, task, tag, method, chosen_model, threshold)
+    classify_claims(db_iberifier, claims, source, task, tag, method, chosen_model, threshold)
 
     if task == 'claim_relation':
         additional_task = 'claim_finer_relation'

@@ -165,4 +165,7 @@ classification_params:
       method: supervised
       chosen_model: supervised_sts
       threshold: 0.85
+    claim_finer_relation:
+      method: SentenceTransformers
+      chosen_model: paraph
 

@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline, AutoTokenizer
 
 import logging
+import logging.config
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ logging_config_path = os.path.join(os.path.dirname(
 with open(logging_config_path,  "r") as f:
     yaml_config = yaml.safe_load(f.read())
     logging.config.dictConfig(yaml_config)
+
+logger = logging.getLogger(config_all['logging']['level'])
 
 
 def get_source_keys(source):

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 # Logging options
 import logging
+import logging.config
 
 logger = logging.getLogger(__name__)
 

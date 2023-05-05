@@ -22,11 +22,16 @@ config_all = yaml.safe_load(open(config_path))
 
 
 # TODO: Absolutely inefficient, need to use an aggregate, project and foreign key instead of that
-def get_list_fact_ids(date1, date2, mydb, col_maldita):
-    for fact_id in mydb[col_maldita].find({"date": {"$gte": date1, "$lte": date2}, 
-                                           "organization.name": {"$in": ['Maldita.es', 'EFE Verifica', 'Newtral']},
-                                           "organizationCalification.calification.name": 'Falso'}, 
-                                          {'fact_id'}):
+def get_list_fact_ids(date1, date2, mydb, col_maldita, all_records=False):
+    if all_records is False:
+        find_query = {"date": {"$gte": date1, "$lte": date2},
+                      # "organization.name": {"$in": ['Maldita.es', 'EFE Verifica', 'Newtral']},
+                      # "organizationCalification.calification.name": 'Falso'
+                      }
+    if all_records is True:
+        find_query = {"date": {"$gte": date1, "$lte": date2}}
+
+    for fact_id in mydb[col_maldita].find(find_query, {'fact_id'}):
         yield fact_id
 
 
@@ -49,7 +54,7 @@ def main():
     until_date_dump = datetime.datetime(2023, 4, 8)
 
     relevant_fact_per_date = list(get_list_fact_ids(
-        from_date_dump, until_date_dump, mydb, col_maldita))
+        from_date_dump, until_date_dump, mydb, col_maldita, all_records=False))
 
     # Retrieve the list of relevant maldita documents
     relevant_maldita = mydb[col_maldita].find({
@@ -63,7 +68,8 @@ def main():
 
     # Retrieve the list of relevant mynews documents
     relevant_mynews = mydb[col_mynews].find({
-        "fact_id": {"$in": [k['_id'] for k in relevant_fact_per_date]}
+        "fact_id": {"$in": [k['_id'] for k in relevant_fact_per_date]},
+        'keywords_in_title': True
     })
 
     # Retrieve the list of keywords documents

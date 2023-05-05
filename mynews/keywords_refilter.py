@@ -13,16 +13,20 @@ from datetime import datetime, timedelta
 # Logging options
 import logging
 
-logger_level = "DEBUG"
-
 logger = logging.getLogger(__name__)
-logger_set_level = getattr(logging, logger_level)
-logger.setLevel(logger_set_level)
-formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+
+# Load config and credentials
 
 config_path = os.path.join(os.path.dirname(
-    __file__), "../config", "config.yaml")
+    __file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
+
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
 
 def select_messages_timeframe(time, messages, timeframe, source):
     x = time - timedelta(days=timeframe)

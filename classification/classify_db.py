@@ -10,19 +10,22 @@ from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline, AutoTokenizer
 
-#Logging options
 import logging
 
-logger_level = "DEBUG"
-
 logger = logging.getLogger(__name__)
-logger_set_level = getattr(logging, logger_level)
-logger.setLevel(logger_set_level)
-formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+
+# Load config and credentials
 
 config_path = os.path.join(os.path.dirname(
-    __file__), "../config", "config.yaml")
+    __file__), '../config', 'config.yaml')
 config_all = yaml.safe_load(open(config_path))
+
+
+logging_config_path = os.path.join(os.path.dirname(
+    __file__), '../config', config_all['logging']['logging_filename'])
+with open(logging_config_path,  "r") as f:
+    yaml_config = yaml.safe_load(f.read())
+    logging.config.dictConfig(yaml_config)
 
 
 def get_source_keys(source):
@@ -104,7 +107,7 @@ def main():
     if chosen_model == 'distiluse_multi':
         model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased')
     elif chosen_model == 'supervised_sts':
-        path_sts = '../models/roberta-base-bne-sts'
+        path_sts = 'models/roberta-base-bne-sts'
         tokenizer_sts = AutoTokenizer.from_pretrained(path_sts)
         model = pipeline('text-classification', model=path_sts, tokenizer=tokenizer_sts, truncation=True)
     else:

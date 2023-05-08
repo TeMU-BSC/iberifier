@@ -64,13 +64,13 @@ def get_claims(db, tag, date_limit, finer=False):
 def get_list_ids(db, source, claim_id, finer=False):
     collection = db[source]
     if finer:
-        results = [i['_id'] for i in collection.find({'fact_id': claim_id, 'claim_relation':'on-topic'})]
+        results = [i['_id'] for i in collection.find({'fact_id': claim_id, 'claim_relation':'on-claim'})]
     else:
         results = [i['_id'] for i in collection.find({'fact_id': claim_id})]
     return results
 
 def get_messages(db, claim, source, finer=False):
-    print(claim['fact_id'])
+    logger.info(claim['fact_id'])
     source_keys = get_source_keys(source)
     list_ids = get_list_ids(db, source, claim['fact_id'], finer)
     tqdm_length = len(list_ids)
@@ -95,7 +95,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
         labels = ['disseminates', 'not-disseminates']
     else:
         labels = ['','']
-        print('Such classification is not implemented.')
+        logger.debug('Such classification is not implemented.')
 
     # choose a model
     if chosen_model == 'distiluse_multi':
@@ -107,7 +107,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
         tokenizer_sts = AutoTokenizer.from_pretrained(path_sts)
         model = pipeline('text-classification', model=path_sts, tokenizer=tokenizer_sts, truncation=True)
     else:
-        print('There is no such model.')
+        logger.debug('There is no such model.')
         exit()
 
     for claim_record in claims:
@@ -117,7 +117,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
                     c_embeddings = model.encode([claim_record['claim'], doc[source_keys["text"]]], convert_to_tensor=True)
                     c_sim = util.cos_sim(c_embeddings[0], c_embeddings[1])
 
-                    f_embeddings = model.encode([claim_record['fact-check'], doc[source_keys["text"]]], convert_to_tensor=True)
+                    f_embeddings = model.encode([claim_record['review'], doc[source_keys["text"]]], convert_to_tensor=True)
                     f_sim = util.cos_sim(f_embeddings[0], f_embeddings[1])
 
                     if c_sim > f_sim:
@@ -127,7 +127,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
                         db[source].update_one({"_id": doc['_id']},
                                               {"$set": {task: labels[1]}})
                 except KeyError:
-                    print('There is no claim or fact-check in this entry')
+                    logger.debug('There is no claim or fact-check in this entry')
                     break
             else:
                 try:
@@ -138,7 +138,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
                         predictions = model(prepare([(claim_record['claim'], doc[source_keys["text"]])], tokenizer_sts), add_special_tokens=False)
                         sim = predictions[0]['score']
                     else:
-                        print('There is no such method.')
+                        logger.debug('There is no such method.')
                         exit()
 
                     if sim > threshold:
@@ -148,7 +148,7 @@ def classify_claims(db, claims, source, task, tag, method, chosen_model, thresho
                         db[source].update_one({"_id": doc['_id']},
                                                         {"$set": {task: labels[1]}})
                 except KeyError:
-                    print('There is no claim in this entry')
+                    logger.debug('There is no claim in this entry')
                     break
 
         # update the claim witht a tag so it does not rerun

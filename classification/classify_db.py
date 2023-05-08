@@ -48,13 +48,13 @@ def get_source_keys(source):
         source_keys["text"] = "Title"
     return source_keys
 
-def get_claim_ids(db, source, tag, date_limit, finer=False):
+def get_claim_ids(db, source, tag, date_limit):
     collection = db[source]
     results = [i['_id'] for i in collection.find({"date": {"$gt": date_limit}, tag: {"$exists": False}, "calification": "Falso"})]
-    return results
+    return results:wq
 
-def get_claims(db, tag, date_limit, finer=False):
-    list_ids = get_claim_ids(db, 'keywords', tag, date_limit=date_limit, finer=finer)
+def get_claims(db, tag, date_limit):
+    list_ids = get_claim_ids(db, 'keywords', tag, date_limit=date_limit)
     tqdm_length = len(list_ids)
     cursor = db['keywords'].find({'_id': {"$in": list_ids}}, batch_size=1)
     for record in tqdm.tqdm(cursor, total=tqdm_length):
@@ -182,7 +182,7 @@ def main():
         new_tag = source+'_'+additional_task+'_already_done'
         new_method = config_all["classification_params"][source][additional_task]["method"]
         new_chosen_model = config_all["classification_params"][source][additional_task]["chosen_model"]
-        claims = get_claims(db_iberifier, additional_task, date_limit, finer=True)
+        claims = get_claims(db_iberifier, new_tag, date_limit)
         classify_claims(db_iberifier, claims, source, additional_task, new_tag, new_method, new_chosen_model, threshold=None, finer=True)
 
 

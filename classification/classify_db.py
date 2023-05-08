@@ -51,7 +51,7 @@ def get_source_keys(source):
 def get_claim_ids(db, source, tag, date_limit):
     collection = db[source]
     results = [i['_id'] for i in collection.find({"date": {"$gt": date_limit}, tag: {"$exists": False}, "calification": "Falso"})]
-    return results:wq
+    return results
 
 def get_claims(db, tag, date_limit):
     list_ids = get_claim_ids(db, 'keywords', tag, date_limit=date_limit)

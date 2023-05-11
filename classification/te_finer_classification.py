@@ -1,5 +1,6 @@
 
 import json
+import random
 import sys
 from transformers import pipeline
 from sklearn.metrics import accuracy_score, confusion_matrix
@@ -48,7 +49,7 @@ def main():
                     #all_values.append(value)
             predictions = model(sentences)
             p_labels = [line['label'] for line in predictions]
-            #p_labels = ["1" for i in range(len(sentences))]
+            #p_labels = [1 for i in range(len(sentences))]
             all_p_labels.extend(p_labels)
 
     print(set(all_p_labels), len(all_p_labels))
@@ -56,10 +57,12 @@ def main():
     print(accuracy_score(all_labels, all_p_labels))
     cf_matrix = confusion_matrix(all_labels, all_p_labels, labels=te_labels)
     print(cf_matrix)
-    pal = sns.light_palette("seagreen", as_cmap=True)
-    sns_plot = sns.heatmap(cf_matrix, xticklabels=[1,2,3], yticklabels=te_labels, cmap=pal)
+    pal = sns.color_palette("dark:#ffcc03", as_cmap=True)
+    sns_plot = sns.heatmap(cf_matrix, xticklabels=[1,2,3], yticklabels=te_labels, cmap=pal, annot=True, fmt=',d')
+    sns_plot.set_xticklabels(sns_plot.get_xticks(), size=16)
+    sns_plot.set_yticklabels(sns_plot.get_yticks(), size=16)
     fig = sns_plot.get_figure()
-    fig.savefig("ontopic_plots/te_heatmap_"+source+"_"+model_source+".png")
+    fig.savefig("ontopic_plots/te_heatmap_"+source+"_"+model_source+".png", pad_inches=0.1, bbox_inches='tight', dpi=600)
 
 
 

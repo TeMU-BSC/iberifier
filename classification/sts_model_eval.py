@@ -7,6 +7,15 @@ import matplotlib.pyplot as plt
 from transformers import pipeline, AutoTokenizer
 from sklearn.metrics import accuracy_score, classification_report
 
+def change_font_size(ax, fontsize):
+    try:
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
+                     ax.get_xticklabels() + ax.get_yticklabels()):
+            item.set_fontsize(fontsize)
+    except AttributeError:
+        for axs in ax:
+            change_font_size(axs, fontsize)
+
 def prepare(sentence_pairs, tokenizer):
     sentence_pairs_prep = []
     for s1, s2 in sentence_pairs:
@@ -136,7 +145,7 @@ def main():
     print(threshold, accuracy)
 
     if plot:
-        f = plt.figure()
+        f, ax = plt.subplots()
         f.set_figwidth(9)
         plt.rc('xtick', labelsize=6)
         violin_plot = plt.violinplot(appended_all_sts_values[::-1], vert = False, showmedians=True)
@@ -153,21 +162,27 @@ def main():
             else:
                 index_limit = 2
             if i <= index_limit: # change to 3
-                pc.set_facecolor('#101E4A')
+                pc.set_facecolor('#1b1c3a')
             else:
-                pc.set_facecolor('#FFDD4A')
+                pc.set_facecolor('#ffcc03')
             pc.set_alpha(0.8)
             pc.set_edgecolor('grey')
 
-        plt.vlines(x=threshold, ymin=0, ymax=5.5, colors='grey')
-        plt.annotate('Accuracy '+str(accuracy), (0, 0), (140, 5),
-                     fontsize=10, xycoords='figure fraction', textcoords='offset points')
+        plt.vlines(x=threshold, ymin=0.5, ymax=5.5, colors='grey')
+        #plt.annotate('Accuracy '+str(accuracy), (0, 0), (140, 5),
+        #             fontsize=10, xycoords='figure fraction', textcoords='offset points')
         if relevant:
             out_path = 'relevant_plots/'
         else:
             out_path = 'ontopic_plots/'
 
-        plt.savefig(out_path+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
+        #plt.savefig(out_path+source+'_'+model_source+".png", bbox_inches='tight', pad_inches = 0.05)
+        fontsize=11
+        change_font_size(ax, fontsize)
+        plt.savefig(out_path+source+'_'+model_source+'.eps', bbox_inches='tight', pad_inches=0.1, dpi=600)
+        fontsize = 16
+        change_font_size(ax, fontsize)
+        plt.savefig(out_path+source+'_'+model_source+'.png', pad_inches=0.1, bbox_inches='tight', dpi=600)
 
 
 

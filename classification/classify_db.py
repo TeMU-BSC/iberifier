@@ -50,7 +50,7 @@ def get_source_keys(source):
 
 def get_claim_ids(db, source, tag, date_limit):
     collection = db[source]
-    results = [i['_id'] for i in collection.find({"date": {"$gt": date_limit}, tag: {"$exists": False}, "calification": "Falso"})]
+    results = [i['_id'] for i in collection.find({"date": {"$gte": date_limit}, tag: {"$exists": False}, "calification": "Falso"})]
     return results
 
 def get_claims(db, tag, date_limit):
@@ -161,7 +161,7 @@ def main():
     method = config_all["classification_params"][source][task]["method"]
     chosen_model = config_all["classification_params"][source][task]["chosen_model"]
     threshold = config_all["classification_params"][source][task]["threshold"]
-    date_limit = datetime(2023, 3, 15) #config_all["classification_params"][source]["date_limit"]
+    date_limit = datetime(2023, 3, 1) #config_all["classification_params"][source]["date_limit"]
 
 
     tag = source+'_'+task+'_already_done'

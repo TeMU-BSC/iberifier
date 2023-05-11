@@ -83,10 +83,12 @@ def main():
     print(accuracy_score([line['true_label'] for line in all_results], [line['result'] for line in all_results]))
     cf_matrix = confusion_matrix([line['true_label'] for line in all_results], [line['result'] for line in all_results], labels=list(mapping_labels.keys())[:2])
     print(cf_matrix)
-    pal = sns.light_palette("seagreen", as_cmap=True)
+    pal = sns.color_palette("dark:#ffcc03", as_cmap=True)
     sns_plot = sns.heatmap(cf_matrix, xticklabels=[1,2], yticklabels=[1,2], cmap=pal, annot=True, fmt=',d')
+    sns_plot.set_xticklabels(sns_plot.get_xticks(), size=16)
+    sns_plot.set_yticklabels(sns_plot.get_yticks(), size=16)
     fig = sns_plot.get_figure()
-    fig.savefig("relevant_plots/te_heatmap_twoways_sts_"+model_source+".png")
+    fig.savefig("relevant_plots/te_heatmap_twoways_sts_"+model_source+".png", pad_inches=0.1, bbox_inches='tight', dpi=600)
 
 
 

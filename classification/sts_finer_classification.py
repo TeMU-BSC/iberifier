@@ -85,8 +85,8 @@ def main():
     print(cf_matrix)
     pal = sns.color_palette("light:#1b1c3a", as_cmap=True)
     sns_plot = sns.heatmap(cf_matrix, xticklabels=[1,2], yticklabels=[1,2], cmap=pal, annot=True, fmt=',d')
-    sns_plot.set_xticklabels(sns_plot.get_xticks(), size=16)
-    sns_plot.set_yticklabels(sns_plot.get_yticks(), size=16)
+    sns_plot.set_xticklabels([1,2], size=16)
+    sns_plot.set_yticklabels([1,2], size=16)
     fig = sns_plot.get_figure()
     fig.savefig("relevant_plots/te_heatmap_twoways_sts_"+model_source+".png", pad_inches=0.1, bbox_inches='tight', dpi=600)
 

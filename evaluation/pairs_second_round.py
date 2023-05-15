@@ -9,10 +9,12 @@ def main():
         for line in f:
             previous_evaluation.append(json.loads(line)['_id'].split('_')[0])
 
-    print(previous_evaluation)
+    #print(previous_evaluation)
 
     with open('../data/dumps/maldita.json') as f:
         maldita = json.load(f)
+
+    maldita = [line for line in maldita if line['organization'] not in [{'id': 4, 'name': 'Polígrafo'}, {'id': 3, 'name': 'Verificat'}]]
 
     with open('../data/dumps/mynews.json') as f:
         mynews = json.load(f)
@@ -27,7 +29,7 @@ def main():
             print('no key')
             continue
     new_mynews = [n for n in mynews if n['_id'] not in previous_evaluation]
-    news_to_evaluate =  new_mynews[:500]
+    news_to_evaluate =  new_mynews[:1000]
 
     news = []
     for n in news_to_evaluate:
@@ -41,20 +43,23 @@ def main():
     with open('../data/dumps/tweets.json') as f:
         tweets = json.load(f)
 
+    random.shuffle(tweets)
     tweets = [n for n in tweets if n['_id'] not in previous_evaluation]
-    tweets_to_evaluate =  tweets[:500]
+    tweets_to_evaluate =  tweets[:1000]
 
-    tweets = []
+    tweets_final = []
     for n in tweets_to_evaluate:
         for claim in maldita:
-            if n['fact_id'] == claim['_id']:
+            if claim['_id'] in n['fact_id']:
                 n['claim_id'] = claim['_id']
                 n['fact-check'] = claim['text']
                 n['claim'] = claim['content']
-                tweets.append(n)
+                tweets_final.append(n)
+
 
     with open('second_round.jsonl', 'w') as o:
-        for line in news:
+        print(len(news))
+        for line in news[:500]:
             o.write(json.dumps({'_id':line['_id']['$oid']+'_'+line['fact_id']['$oid'],
                                 'text':"***CLAIM***:\n "+line['claim']+
                                        " \n ***FACT-CHECK***: " + line['fact-check'] +
@@ -62,8 +67,8 @@ def main():
                                        ' \n ***FIRS LINE OF ARTICLE***: \n '+line['Content'].split('. ')[0]
                                 }))
             o.write('\n')
-
-        for line in tweets:
+        print(len(tweets_final))
+        for line in tweets_final[:500]:
             o.write(json.dumps({'_id':line['_id']['$oid']+'_'+line['claim_id']['$oid'],
                                 'text':"***CLAIM***:\n "+line['claim']+
                                         " \n ***FACT-CHECK***: \n "+line['fact-check']+

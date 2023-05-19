@@ -50,8 +50,8 @@ def main():
     file_dump_keywords = config_all['analysis']['dump_keywords_file']
 
     # Set the date range for keywords search
-    from_date_dump = datetime.datetime(2023, 3, 8)
-    until_date_dump = datetime.datetime(2023, 4, 8)
+    from_date_dump = datetime.datetime(2023, 3, 15)
+    until_date_dump = datetime.datetime(2023, 4, 15)
 
     relevant_fact_per_date = list(get_list_fact_ids(
         from_date_dump, until_date_dump, mydb, col_maldita, all_records=False))

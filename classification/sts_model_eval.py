@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import matplotlib.pyplot as plt
 from transformers import pipeline, AutoTokenizer
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, f1_score, precision_score
 
 def change_font_size(ax, fontsize):
     try:
@@ -32,7 +32,7 @@ def choose_thresholds(upper_boundary, lower_boundary, trials):
             thresholds.append(threshold_attempt)
     return thresholds
 
-def calculate_accuracy(threshold, values, labels, report=False):
+def calculate_precision(threshold, values, labels, report=False):
     predicted_labels = []
     for v in values:
         if v > threshold:
@@ -41,7 +41,7 @@ def calculate_accuracy(threshold, values, labels, report=False):
             predicted_labels.append(0)
     if report:
         print(classification_report(labels, predicted_labels))
-    return accuracy_score(labels, predicted_labels)
+    return precision_score(labels, predicted_labels, average='macro')
 
 def maximize_accuracy(values, labels, trials=5):
     negative_values = []
@@ -57,15 +57,16 @@ def maximize_accuracy(values, labels, trials=5):
     best_accuracy = 0
     best_threshold = 0
     for t in thresholds:
-        accuracy = calculate_accuracy(t, values, labels)
-        if accuracy > best_accuracy:
+        #accuracy = calculate_accuracy(t, values, labels)
+        f1 = calculate_precision(t, values, labels)
+        if f1 > best_accuracy:
             best_threshold = t
-            best_accuracy = accuracy
-    calculate_accuracy(best_threshold, values, labels, report = True)
+            best_accuracy = f1
+    calculate_precision(best_threshold, values, labels, report = True)
     return best_threshold, best_accuracy
 
 def main():
-    source = sys.argv[1] # news tweets
+    source = sys.argv[1] # news tweets balanced_eval
     model_source = sys.argv[2]
     plot = True
     relevant = True
@@ -74,6 +75,15 @@ def main():
         data = []
         for line in f:
             data.append(json.loads(line))
+
+    if relevant:
+        # remove the manipulated content becuase its not textual and messes with the rest of the data
+        with open('../evaluation/manipulated_ids.txt') as f:
+            manipulated_ids = f.readlines()
+        manipulated_ids = [line[:-1] for line in manipulated_ids]
+        print(len(data))
+        data = [line for line in data if line['id_claim'] not in manipulated_ids]
+        print(len(data))
 
     ordinal_labels = {'The text disseminates the false claim':0,
                  'The text is about the claim, but it does not support it':0.25,

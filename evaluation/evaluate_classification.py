@@ -27,13 +27,15 @@ def evaluate(data, source_content, category, mapping):
                 gold_labels.append(mapping[line['accept'][0]])
             except KeyError:
                 pass
-
+    print(Counter(gold_labels))
     print(len(predicted_labels), len(gold_labels))
     print(classification_report(gold_labels, predicted_labels))
     print(accuracy_score(gold_labels, predicted_labels))
     print(confusion_matrix(gold_labels, predicted_labels))
 
 def main():
+    level = sys.argv[2] # on_claim on_topic
+
     with open(sys.argv[1]) as f:
         data = []
         for line in f:
@@ -59,13 +61,15 @@ def main():
 
 
     sources = ['mynews', 'tweets']
+    #sources = ['tweets']
     for source in sources:
         with open('../data/dumps/'+source+'.json') as f:
             source_content = json.load(f)
 
-        #evaluate(data, source_content, 'topic_relation', topic_gold_to_predicted_mapping)
+        if level == 'on_topic':
+            evaluate(data, source_content, 'topic_relation', topic_gold_to_predicted_mapping)
 
-        if source == 'tweets':
+        if level == 'on_claim' and source == 'tweets':
             evaluate(data, source_content, 'claim_relation', claim_gold_to_predicted_mapping)
             evaluate(data, source_content, 'claim_finer_relation', claim_finer_gold_to_predicted_mapping)
 

@@ -8,12 +8,12 @@ def main():
                 'Es otro tema': 'The text is on another topic',
                 'Tweet ilegible': 'The text is not readable'}
 
-    with open(sys.argv[1]+'.jsonl') as f:
+    with open(sys.argv[1]) as f:
         data = []
         for line in f:
             data.append(json.loads(line))
 
-    with open('../data/'+sys.argv[1]+'_posprocessed.jsonl', 'w') as o:
+    with open('../data/eval_'+sys.argv[1], 'w') as o:
         for line in data:
             claim = line['text'][14:]
             claim, rest = claim.split("\n ***FACT-CHECK***: ")

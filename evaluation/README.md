@@ -20,7 +20,7 @@ python pairs_second_round.py
 prodigy textcat.manual second_round data/iberifier/third_round.jsonl --label 'Difunde la claim falsa','Es sobre la claim pero no la apoya','Es sobre el tema pero no sobre la misma claim','Es otro tema','Tweet ilegible' --exclusive
 prodigy db-out second_round > second_round_results.jsonl
 
-python evaluate_classification.py second_round_results.jsonl on_topic
+python evaluate_classification.py test_balance_all.jsonl on_topic
 
-python evaluate_classification.py test_balance.jsonl on_claim
+python evaluate_classification.py test_balance_no_manipulated.jsonl on_claim
 ```

@@ -1,16 +1,52 @@
 distiluse_multi tweets
+                                                         precision    recall  f1-score   support
+
+                  The text disseminates the false claim       0.62      0.75      0.68       166
+The text is about the claim, but it does not support it       0.75      0.62      0.68       199
+
+                                               accuracy                           0.68       365
+                                              macro avg       0.69      0.69      0.68       365
+                                           weighted avg       0.69      0.68      0.68       365
+
 0.6794520547945205
 [[124  42]
  [ 75 124]]
 spanish tweets
+                                                         precision    recall  f1-score   support
+
+                  The text disseminates the false claim       0.60      0.63      0.62       166
+The text is about the claim, but it does not support it       0.68      0.65      0.66       199
+
+                                               accuracy                           0.64       365
+                                              macro avg       0.64      0.64      0.64       365
+                                           weighted avg       0.64      0.64      0.64       365
+
 0.6410958904109589
 [[105  61]
  [ 70 129]]
 supervised_sts tweets
+                                                         precision    recall  f1-score   support
+
+                  The text disseminates the false claim       0.64      0.92      0.75       166
+The text is about the claim, but it does not support it       0.90      0.56      0.69       199
+
+                                               accuracy                           0.73       365
+                                              macro avg       0.77      0.74      0.72       365
+                                           weighted avg       0.78      0.73      0.72       365
+
 0.726027397260274
 [[153  13]
  [ 87 112]]
 paraph tweets
+                                                         precision    recall  f1-score   support
+
+                  The text disseminates the false claim       0.68      0.85      0.75       166
+The text is about the claim, but it does not support it       0.84      0.66      0.74       199
+
+                                               accuracy                           0.75       365
+                                              macro avg       0.76      0.76      0.75       365
+                                           weighted avg       0.77      0.75      0.75       365
+
 0.7479452054794521
 [[141  25]
  [ 67 132]]

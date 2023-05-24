@@ -1,6 +1,6 @@
 
 import json
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 import seaborn as sns
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline, AutoTokenizer
@@ -79,7 +79,7 @@ def main():
         elif line['claim_similarity'] < line['factcheck_similarity']:
             line['result'] = 'The text is about the claim, but it does not support it'
 
-
+    print(classification_report([line['true_label'] for line in all_results], [line['result'] for line in all_results]))
     print(accuracy_score([line['true_label'] for line in all_results], [line['result'] for line in all_results]))
     cf_matrix = confusion_matrix([line['true_label'] for line in all_results], [line['result'] for line in all_results], labels=list(mapping_labels.keys())[:2])
     print(cf_matrix)

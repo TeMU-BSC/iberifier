@@ -3,7 +3,7 @@ import json
 import random
 import sys
 from transformers import pipeline
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import seaborn as sns
 
 def main():
@@ -54,6 +54,7 @@ def main():
 
     print(set(all_p_labels), len(all_p_labels))
     print(set(all_labels), len(all_labels))
+    print(classification_report(all_labels, all_p_labels))
     print(accuracy_score(all_labels, all_p_labels))
     cf_matrix = confusion_matrix(all_labels, all_p_labels, labels=te_labels)
     print(cf_matrix)

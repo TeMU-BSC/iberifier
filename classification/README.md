@@ -22,5 +22,5 @@ sh compare_te_models.sh
 Finer classification of the texts comparing STS scores from claim to text and from fact-check to text (two-way classification, only for tweets):
 
 ```
-python sts_finer_classification.py
+sh compare_sts_models_finer.sh
 ```

@@ -1,10 +1,9 @@
+from __future__ import with_statement
 import logging
 import os
-import json
 import sys
 import logging.config
 import datetime
-from bson import ObjectId
 from bson.json_util import dumps
 
 import yaml
@@ -34,24 +33,21 @@ def get_list_fact_ids(date1, date2, mydb, col_maldita, all_records=False):
     for fact_id in mydb[col_maldita].find(find_query, {'fact_id'}):
         yield fact_id
 
-
 def main():
     # Iterate through collection
     mydb = mongo_utils.get_mongo_db()
     col_tweets = config_all['mongodb_params']['tweets']['name']
     col_mynews = config_all['mongodb_params']['mynews']['name']
     col_maldita = config_all['mongodb_params']['maldita']['name']
-    col_google = config_all['mongodb_params']['google']['name']
     col_keywords = config_all['mongodb_params']['keywords']['name']
     file_dump_tweets = config_all['analysis']['dump_tweets_file']
-    file_dump_google = config_all['analysis']['dump_google_file']
     file_dump_mynews = config_all['analysis']['dump_mynews_file']
     file_dump_maldita = config_all['analysis']['dump_maldita_file']
     file_dump_keywords = config_all['analysis']['dump_keywords_file']
 
     # Set the date range for keywords search
-    from_date_dump = datetime.datetime(2023, 3, 15)
-    until_date_dump = datetime.datetime(2023, 4, 15)
+    from_date_dump = datetime.datetime(2023, 3, 8)
+    until_date_dump = datetime.datetime(2023, 4, 8)
 
     relevant_fact_per_date = list(get_list_fact_ids(
         from_date_dump, until_date_dump, mydb, col_maldita, all_records=False))
@@ -87,6 +83,8 @@ def main():
     with open(file_dump_mynews, "w") as f:
         f.write(dumps(relevant_mynews))
 
+
+print ( 0 )
 
 if __name__ == "__main__":
     main()

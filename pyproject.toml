@@ -39,6 +39,7 @@ tfcausalimpact = "^0.0.13"
 neuralprophet = "^0.6.0"
 statsmodels = "^0.14.0"
 pymer4 = "^0.8.0"
+jupyterlab-lsp = "^4.1.0"
 
 
 [tool.poetry.dev-dependencies]

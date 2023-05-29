@@ -1,44 +1,22 @@
 # Iberifier
 
-## Data sources and associated schema:
-### Twitter API:
-### Telegram API:
-### [Meneame](https://www.meneame.net/): 
+## Pipeline
 
-## Fact checks and associated schema:
-### Maldita API:
-
-All the historical data to the db:
-```
-python api_maldita/use_api.py --query historical
-```
-
-### Google Fake news API
-* The documentation from Google Fake News API: [here](https://developers.google.com/search/docs/advanced/structured-data/factcheck#type_definitions)
-
-All the historical data to the db:
-```
-python api_google/use_api.py --query historical
-```
-
-## MongoDB structure
-
-
-## Initial setup
-
-## Semantic Textual Similarity between fact-checked claims and data sources
+This pipeline is designed to be executed daily and gather data around disinformation. To this purpose, the pipeline takes the fact-checks that have been identified that day (through the APIs of Iberifier and Google), extracts keywords from these fact-checks, and uses these keywords to look for information related to these claims in digital media (MyNews service) and social networks (Twitter). 
 
 ```
-python STS/dates_STS_filter.py \
-        --source mynews # currently can be: lusa, twitter_test, mynews and telegram \
-        --threshold 0.4
+sh pipeline.sh
 ```
+To change the configuration of the pipeline (e.g. the keyword or querying strategies, NLP models, etc.) see the config file in ```config/config.yaml```
 
-### PLANTL-GOB-ES
-The models for the NER extraction using the TeMU ES needs to be cloned from huggingface rather than using the pipelin. The reason is the need to modify the config file to replace the `_` with `-` for the entities identification. It should not be needed for the other models
+## Evaluation
 
-```bash
-cd ./models/
-git lfs install
-git clone https://huggingface.co/PlanTL-GOB-ES/roberta-base-bne-capitel-ner-plus
-```
+For the evaluation of the collection methods we have annotated some data manually. The scripts for the evaluation can be found in ```evaluation```.
+
+## Classification
+
+To assess the relation between the collected data and the fact-checked claims we have experimented some classification methods based in NLP. The experiments can be found in the folder ```classification```. The best models are already integrated in the pipeline with the script ```classification/classify_db.py```.
+
+# Analysis
+
+
